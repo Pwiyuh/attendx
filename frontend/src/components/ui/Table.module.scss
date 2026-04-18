@@ -1,0 +1,64 @@
+@use '../../styles/variables' as *;
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: $radius-lg;
+  border: 1px solid $border-color;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-base;
+
+  th, td {
+    padding: $space-3 $space-4;
+    text-align: left;
+    border-bottom: 1px solid $border-color;
+    white-space: nowrap;
+  }
+
+  th {
+    background: $bg-secondary;
+    font-weight: $weight-medium;
+    color: $text-secondary;
+    font-size: $font-sm;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  tbody {
+    tr {
+      transition: background $transition-fast;
+
+      &:hover {
+        background: rgba($accent-primary, 0.04);
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+
+    td {
+      color: $text-primary;
+    }
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: $space-12 $space-4;
+  color: $text-muted;
+  font-size: $font-base;
+
+  .emptyIcon {
+    font-size: 2rem;
+    margin-bottom: $space-3;
+    opacity: 0.5;
+  }
+}

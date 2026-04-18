@@ -1,0 +1,143 @@
+@use '../../styles/variables' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-3;
+  font-size: $font-xs;
+  font-weight: $weight-medium;
+  border-radius: $radius-full;
+  letter-spacing: 0.02em;
+
+  &.success {
+    background: $accent-success-dim;
+    color: $accent-success;
+  }
+
+  &.warning {
+    background: $accent-warning-dim;
+    color: $accent-warning;
+  }
+
+  &.danger {
+    background: rgba($accent-danger, 0.15);
+    color: $accent-danger;
+  }
+
+  &.info {
+    background: rgba($accent-info, 0.15);
+    color: $accent-info;
+  }
+
+  &.neutral {
+    background: $bg-muted;
+    color: $text-secondary;
+  }
+}
+
+// ── Progress Bar ──────────────────────────────────────────────
+
+.progressWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: $font-sm;
+
+  .progressTitle {
+    color: $text-secondary;
+  }
+
+  .progressValue {
+    font-weight: $weight-semibold;
+    color: $text-primary;
+  }
+}
+
+.progressTrack {
+  width: 100%;
+  height: 8px;
+  background: $bg-muted;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: $radius-full;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  &.green {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+  }
+
+  &.yellow {
+    background: linear-gradient(90deg, #eab308, #facc15);
+  }
+
+  &.red {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: shimmer 2s infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// ── Toggle ─────────────────────────────────────────────────────
+
+.toggle {
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggleTrack {
+  width: 44px;
+  height: 24px;
+  background: $bg-muted;
+  border: 1px solid $border-color;
+  border-radius: $radius-full;
+  position: relative;
+  transition: all $transition-fast;
+
+  &.active {
+    background: $accent-success;
+    border-color: $accent-success;
+  }
+
+  &.inactive {
+    background: rgba($accent-danger, 0.3);
+    border-color: rgba($accent-danger, 0.5);
+  }
+}
+
+.toggleThumb {
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform $transition-fast;
+  box-shadow: $shadow-sm;
+
+  .active & {
+    transform: translateX(20px);
+  }
+}

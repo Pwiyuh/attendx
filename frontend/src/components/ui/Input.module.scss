@@ -1,0 +1,66 @@
+@use '../../styles/variables' as *;
+
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.label {
+  font-size: $font-sm;
+  font-weight: $weight-medium;
+  color: $text-secondary;
+}
+
+.input {
+  width: 100%;
+  padding: $space-2 $space-3;
+  font-size: $font-base;
+  color: $text-primary;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  outline: none;
+  transition: all $transition-fast;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+
+  &:hover {
+    border-color: $border-hover;
+  }
+
+  &:focus {
+    border-color: $accent-primary;
+    box-shadow: 0 0 0 3px $accent-primary-dim;
+  }
+
+  &.error {
+    border-color: $accent-danger;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($accent-danger, 0.15);
+    }
+  }
+}
+
+.errorText {
+  font-size: $font-xs;
+  color: $accent-danger;
+}
+
+.select {
+  @extend .input;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right $space-3 center;
+  padding-right: $space-8;
+
+  option {
+    background: $bg-card;
+    color: $text-primary;
+  }
+}

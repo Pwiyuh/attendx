@@ -1,0 +1,299 @@
+/* ── Delete Confirmation Modal ──────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+
+.modal {
+  background: #0a0a0a;
+  border: 1px solid #27272a;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  margin: 16px;
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+/* ── Header ─────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 0;
+}
+
+.iconCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.headerText h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fafafa;
+  margin: 0;
+}
+
+.headerText p {
+  font-size: 0.8125rem;
+  color: #71717a;
+  margin: 4px 0 0;
+}
+
+/* ── Body ───────────────────────────────────────── */
+
+.body {
+  padding: 20px 24px;
+}
+
+.warningBox {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.warningBox p {
+  font-size: 0.8125rem;
+  color: #fca5a5;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.warningBox strong {
+  color: #ef4444;
+}
+
+.entityHighlight {
+  display: inline-block;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+/* ── Confirmation Input ─────────────────────────── */
+
+.confirmSection {
+  margin-top: 16px;
+}
+
+.confirmSection label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.confirmSection label code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fafafa;
+  font-size: 0.8125rem;
+}
+
+.confirmInput {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  color: #fafafa;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.confirmInput:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+}
+
+.confirmInput.valid {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.1);
+}
+
+.validationHint {
+  font-size: 0.75rem;
+  margin-top: 6px;
+  color: #71717a;
+  transition: color 0.15s;
+}
+
+.validationHint.error {
+  color: #ef4444;
+}
+
+.validationHint.success {
+  color: #22c55e;
+}
+
+/* ── Delete keyword ─────────────────────────────── */
+
+.deleteKeyword {
+  margin-top: 16px;
+}
+
+.deleteKeyword label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  margin-bottom: 8px;
+}
+
+/* ── Footer ─────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid #1a1a1e;
+}
+
+.cancelBtn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  background: transparent;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+  background: #18181b;
+  color: #fafafa;
+}
+
+.deleteBtn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: #dc2626;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.deleteBtn .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── Step indicator ─────────────────────────────── */
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #111113;
+  border-bottom: 1px solid #1a1a1e;
+}
+
+.step {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #27272a;
+  color: #71717a;
+  transition: all 0.2s;
+}
+
+.step.active {
+  background: #ef4444;
+  color: #fff;
+}
+
+.step.done {
+  background: #22c55e;
+  color: #fff;
+}
+
+.stepLine {
+  flex: 1;
+  height: 2px;
+  background: #27272a;
+  border-radius: 1px;
+}
+
+.stepLine.active {
+  background: linear-gradient(90deg, #22c55e, #27272a);
+}
+
+.stepLabel {
+  font-size: 0.75rem;
+  color: #71717a;
+  margin-left: auto;
+}
+
+/* ── Animations ─────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

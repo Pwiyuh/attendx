@@ -1,0 +1,66 @@
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.tabs {
+  display: flex;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: 4px;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: $space-2 $space-5;
+  font-size: $font-sm;
+  font-weight: $weight-medium;
+  color: $text-muted;
+  background: transparent;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+
+  &:hover {
+    color: $text-secondary;
+    background: rgba($bg-muted, 0.5);
+  }
+
+  &.activeTab {
+    background: $bg-muted;
+    color: $text-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $space-3;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $space-4;
+  margin-bottom: $space-4;
+}
+
+.inlineForm {
+  display: flex;
+  gap: $space-3;
+  align-items: end;
+  flex-wrap: wrap;
+}

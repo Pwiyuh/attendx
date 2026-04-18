@@ -1,0 +1,72 @@
+.selectWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a1a1aa;
+}
+
+.relative {
+  position: relative;
+  width: 100%;
+}
+
+.select {
+  width: 100%;
+  appearance: none;
+  background-color: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 0.5rem;
+  color: #fafafa;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  outline: none;
+
+  &:hover {
+    border-color: #3f3f46;
+    background-color: #111113;
+  }
+
+  &:focus {
+    border-color: #0080ff;
+    box-shadow: 0 0 0 2px rgba(0, 128, 255, 0.2);
+  }
+
+  &.error {
+    border-color: #ef4444;
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+  }
+
+  option {
+    background-color: #09090b;
+    color: #fafafa;
+  }
+}
+
+.arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.75rem;
+  height: 0.75rem;
+  pointer-events: none;
+  border-right: 2px solid #a1a1aa;
+  border-bottom: 2px solid #a1a1aa;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.errorText {
+  font-size: 0.75rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+}

@@ -1,0 +1,130 @@
+@use '../../styles/variables' as *;
+
+.loginPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $bg-primary;
+  position: relative;
+  overflow: hidden;
+
+  // Animated gradient orbs in background
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    animation: float 15s ease-in-out infinite;
+  }
+
+  &::before {
+    width: 500px;
+    height: 500px;
+    background: $accent-primary;
+    top: -150px;
+    right: -100px;
+    animation-delay: 0s;
+  }
+
+  &::after {
+    width: 400px;
+    height: 400px;
+    background: #a78bfa;
+    bottom: -100px;
+    left: -50px;
+    animation-delay: -7s;
+  }
+}
+
+.loginContainer {
+  width: 100%;
+  max-width: 420px;
+  padding: $space-8;
+  position: relative;
+  z-index: 1;
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: $space-10;
+
+  h1 {
+    font-size: $font-4xl;
+    font-weight: $weight-bold;
+    background: linear-gradient(135deg, $accent-primary 0%, #a78bfa 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: $space-2;
+  }
+
+  p {
+    color: $text-muted;
+    font-size: $font-base;
+  }
+}
+
+.loginCard {
+  background: rgba($bg-card, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid $border-color;
+  border-radius: $radius-xl;
+  padding: $space-8;
+  box-shadow: $shadow-xl;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-5;
+}
+
+.roleTabs {
+  display: flex;
+  background: $bg-primary;
+  border-radius: $radius-md;
+  padding: 3px;
+  gap: 2px;
+}
+
+.roleTab {
+  flex: 1;
+  padding: $space-2 $space-3;
+  font-size: $font-sm;
+  font-weight: $weight-medium;
+  color: $text-muted;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast;
+  text-align: center;
+
+  &:hover {
+    color: $text-secondary;
+  }
+
+  &.activeRole {
+    background: $bg-muted;
+    color: $text-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.error {
+  background: rgba($accent-danger, 0.1);
+  border: 1px solid rgba($accent-danger, 0.3);
+  color: $accent-danger;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: $font-sm;
+  text-align: center;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}

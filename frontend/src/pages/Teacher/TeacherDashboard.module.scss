@@ -1,0 +1,114 @@
+@use '../../styles/variables' as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: $space-6;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $space-4;
+  align-items: end;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $space-4;
+}
+
+.statCard {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $border-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  .statIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.indigo { background: $accent-primary-dim; color: $accent-primary; }
+    &.green { background: $accent-success-dim; color: $accent-success; }
+    &.yellow { background: $accent-warning-dim; color: $accent-warning; }
+    &.red { background: rgba($accent-danger, 0.15); color: $accent-danger; }
+  }
+
+  .statInfo {
+    .statValue {
+      font-size: $font-2xl;
+      font-weight: $weight-bold;
+      color: $text-primary;
+      line-height: 1.2;
+    }
+    .statLabel {
+      font-size: $font-sm;
+      color: $text-muted;
+    }
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $space-3;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+}
+
+.attendanceTable {
+  .statusCell {
+    display: flex;
+    align-items: center;
+    gap: $space-3;
+  }
+
+  .statusLabel {
+    font-size: $font-sm;
+    font-weight: $weight-medium;
+    min-width: 55px;
+
+    &.present { color: $accent-success; }
+    &.absent { color: $accent-danger; }
+  }
+}
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-4 $space-5;
+  background: $accent-success-dim;
+  border: 1px solid rgba($accent-success, 0.3);
+  border-radius: $radius-md;
+  color: $accent-success;
+  font-weight: $weight-medium;
+  animation: slideIn $transition-slow forwards;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
