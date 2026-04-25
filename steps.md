@@ -4,5 +4,11 @@ uvicorn app.main:app --reload
 
 cd frontend
 npm run dev
+
 Admin:admin@college.edu
 pwd:admin123
+
+student:
+
+
+teacher:

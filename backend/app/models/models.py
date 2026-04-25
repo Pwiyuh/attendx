@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Date, DateTime, Text, Enum, ForeignKey,
-    UniqueConstraint, Index, JSON,
+    UniqueConstraint, Index, JSON, Boolean,
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -143,4 +143,14 @@ class AuditLog(Base):
         Index("ix_audit_logs_action", "action"),
         Index("ix_audit_logs_timestamp", "timestamp"),
     )
+
+# ── Settings ───────────────────────────────────────────────────────
+
+class SchoolSettings(Base):
+    __tablename__ = "school_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    school_name = Column(String(200), nullable=False)
+    logo_url = Column(String(500), nullable=True)
+    setup_completed = Column(Boolean, default=False, nullable=False)
 

@@ -7,6 +7,9 @@ import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import AdminPanel from './pages/Admin/AdminPanel';
 import ProfilePage from './pages/Profile/ProfilePage';
+import LandingPage from './pages/Landing/LandingPage';
+import Onboarding from './pages/Onboarding/Onboarding';
+import api from './services/api';
 
 // Protected route wrapper
 const ProtectedRoute: React.FC<{
@@ -21,11 +24,25 @@ const ProtectedRoute: React.FC<{
   return <>{children}</>;
 };
 
-// Redirect authenticated users to their dashboard
+// Unified redirector for "Get Started" buttons
+const GetStartedRedirect: React.FC = () => {
+  const [target, setTarget] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    api.get('/onboarding/status').then((res) => {
+      setTarget(res.data.setup_completed ? '/login' : '/onboarding');
+    }).catch(() => setTarget('/login'));
+  }, []);
+
+  if (!target) return <div className="min-h-screen bg-galaxy-900" />;
+  return <Navigate to={target} replace />;
+};
+
+// Show Landing page to unauthenticated users, redirect others to dashboard
 const AuthRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <LandingPage />;
   if (user?.role === 'admin') return <Navigate to="/admin" replace />;
   if (user?.role === 'teacher') return <Navigate to="/teacher" replace />;
   return <Navigate to="/student" replace />;
@@ -38,6 +55,8 @@ const App: React.FC = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/get-started" element={<GetStartedRedirect />} />
             <Route path="/" element={<AuthRedirect />} />
 
             {/* Teacher Routes */}
