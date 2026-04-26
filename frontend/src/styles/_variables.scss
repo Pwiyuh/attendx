@@ -1,12 +1,12 @@
 // ── Design Tokens (shadcn-inspired) ─────────────────────────────
 
 // Colors - Dark theme palette
-$bg-primary: #09090b;
-$bg-secondary: #111113;
-$bg-card: #18181b;
-$bg-popover: #1c1c1f;
-$bg-muted: #27272a;
-$bg-accent: #27272a;
+$bg-primary: transparent;
+$bg-secondary: rgba(17, 17, 19, 0.45);
+$bg-card: rgba(24, 24, 27, 0.4);
+$bg-popover: rgba(28, 28, 31, 0.7);
+$bg-muted: rgba(39, 39, 42, 0.4);
+$bg-accent: rgba(39, 39, 42, 0.4);
 
 $border-color: #27272a;
 $border-hover: #3f3f46;

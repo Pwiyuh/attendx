@@ -22,7 +22,7 @@ const HowItWorks: React.FC = () => {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-[#0d0a1b] relative overflow-hidden">
+    <section id="how-it-works" className="py-24 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
@@ -39,7 +39,7 @@ const HowItWorks: React.FC = () => {
           {steps.map((step, index) => (
             <div key={index} className="relative z-10 pt-8 md:pt-0">
                <div className="flex flex-col items-center text-center">
-                 <div className="w-16 h-16 rounded-full bg-galaxy-800 border-4 border-[#0d0a1b] flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(109,40,217,0.4)] relative">
+                 <div className="w-16 h-16 rounded-full bg-galaxy-800/80 border-4 border-white/5 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(109,40,217,0.4)] relative">
                     <div className="absolute inset-0 bg-galaxy-purple opacity-20 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
                     {step.icon}
                  </div>

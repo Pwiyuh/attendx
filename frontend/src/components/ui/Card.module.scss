@@ -2,6 +2,8 @@
 
 .card {
   background: $bg-card;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid $border-color;
   border-radius: $radius-lg;
   transition: all $transition-base;

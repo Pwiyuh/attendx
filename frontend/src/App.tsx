@@ -9,6 +9,7 @@ import AdminPanel from './pages/Admin/AdminPanel';
 import ProfilePage from './pages/Profile/ProfilePage';
 import LandingPage from './pages/Landing/LandingPage';
 import Onboarding from './pages/Onboarding/Onboarding';
+import GalaxyBackground from './components/ui/GalaxyBackground';
 import api from './services/api';
 
 // Protected route wrapper
@@ -52,7 +53,17 @@ const App: React.FC = () => {
   return (
     <ToastProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <div 
+          className="relative min-h-screen text-text-primary selection:bg-galaxy-purple selection:text-white font-sans overflow-x-hidden"
+          style={{ background: '#020617' }}
+        >
+          {/* Global Immersive Galaxy Background */}
+          <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+            <GalaxyBackground intensity={0.9} speed={1} />
+          </div>
+          
+          <div className="relative z-10 min-h-screen">
+            <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
@@ -120,7 +131,9 @@ const App: React.FC = () => {
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+          </BrowserRouter>
+          </div>
+        </div>
       </AuthProvider>
     </ToastProvider>
   );

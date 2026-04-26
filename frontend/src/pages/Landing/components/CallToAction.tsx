@@ -4,10 +4,7 @@ import { Link } from 'react-router-dom';
 
 const CallToAction: React.FC = () => {
   return (
-    <section className="py-20 relative overflow-hidden bg-[#0B0B1A]">
-      <div className="absolute inset-0 w-full h-full">
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-galaxy-purple/30 rounded-full mix-blend-screen filter blur-[150px] pointer-events-none" />
-      </div>
+    <section className="py-20 relative overflow-hidden">
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight">

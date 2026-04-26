@@ -8,6 +8,8 @@
 .sidebar {
   width: 260px;
   background: $bg-secondary;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid $border-color;
   display: flex;
   flex-direction: column;

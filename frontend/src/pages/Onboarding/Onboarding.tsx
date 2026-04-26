@@ -81,16 +81,14 @@ const Onboarding: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-galaxy-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center relative">
         <Loader2 className="w-10 h-10 text-galaxy-purple animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-galaxy-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-galaxy-purple/20 rounded-full mix-blend-screen filter blur-[150px] pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
 
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-8">

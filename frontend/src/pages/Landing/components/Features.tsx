@@ -32,8 +32,7 @@ const Features: React.FC = () => {
   ];
 
   return (
-    <section id="features" className="py-24 bg-galaxy-900 relative">
-      <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-galaxy-purple/10 rounded-full mix-blend-screen filter blur-[120px] pointer-events-none" />
+    <section id="features" className="py-24 relative">
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">

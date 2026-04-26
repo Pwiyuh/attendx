@@ -4,7 +4,7 @@ import GlassCard from '../../../components/ui/GlassCard';
 
 const Customization: React.FC = () => {
   return (
-    <section className="py-24 bg-galaxy-900 overflow-hidden">
+    <section className="py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row items-center gap-16">
           <div className="w-full lg:w-1/2">

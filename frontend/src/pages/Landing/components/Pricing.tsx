@@ -49,8 +49,7 @@ const Pricing: React.FC = () => {
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-galaxy-900 relative">
-      <div className="absolute left-0 bottom-0 w-full h-[500px] bg-gradient-to-t from-[#0B0B1A] to-transparent pointer-events-none" />
+    <section id="pricing" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">

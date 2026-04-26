@@ -11,7 +11,7 @@ import Footer from './components/Footer';
 
 const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-galaxy-900 text-text-primary selection:bg-galaxy-purple selection:text-white font-sans overflow-x-hidden">
+    <div className="relative">
       <Navbar />
       <main>
         <Hero />

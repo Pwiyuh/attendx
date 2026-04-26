@@ -5,10 +5,7 @@ import GlassCard from '../../../components/ui/GlassCard';
 
 const Hero: React.FC = () => {
   return (
-    <section id="home" className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-galactic text-white">
-      {/* Soft Galaxy Orbs Background */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-galaxy-purple/30 rounded-full mix-blend-screen filter blur-[128px] animate-pulse-slow" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-galaxy-blue/20 rounded-full mix-blend-screen filter blur-[128px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+    <section id="home" className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden text-white">
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
         <div className="max-w-3xl mx-auto">

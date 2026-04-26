@@ -5,37 +5,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $bg-primary;
   position: relative;
   overflow: hidden;
-
-  // Animated gradient orbs in background
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.15;
-    animation: float 15s ease-in-out infinite;
-  }
-
-  &::before {
-    width: 500px;
-    height: 500px;
-    background: $accent-primary;
-    top: -150px;
-    right: -100px;
-    animation-delay: 0s;
-  }
-
-  &::after {
-    width: 400px;
-    height: 400px;
-    background: #a78bfa;
-    bottom: -100px;
-    left: -50px;
-    animation-delay: -7s;
-  }
 }
 
 .loginContainer {
@@ -123,8 +94,4 @@
   text-align: center;
 }
 
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
-}
+
