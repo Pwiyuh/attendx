@@ -15,10 +15,14 @@ interface SubjectSummary {
   attended: number;
   total: number;
   percentage: number;
+  teacher_name?: string;
 }
 
 interface AttendanceData {
   student_name: string;
+  class_name: string;
+  section_name: string;
+  class_teacher_name: string;
   subjects: SubjectSummary[];
   overall_percentage: number;
 }
@@ -248,6 +252,12 @@ const StudentDashboard: React.FC = () => {
                 </div>
               </div>
               <div className={styles.overallInfo}>
+                <div className={styles.classContext}>
+                  <Badge variant="info">{data.class_name} • {data.section_name}</Badge>
+                  <span className={styles.classTeacher}>
+                    Class Teacher: <strong>{data.class_teacher_name}</strong>
+                  </span>
+                </div>
                 <h2>Welcome back, {data.student_name}</h2>
                 <p>Here's your attendance summary across all subjects.</p>
                 <div className={styles.overallStats}>
@@ -278,6 +288,10 @@ const StudentDashboard: React.FC = () => {
                         <Badge variant={getBadgeVariant(sub.percentage)}>{sub.percentage.toFixed(1)}%</Badge>
                       </div>
                       <ProgressBar value={sub.percentage} />
+                      <div className={styles.teacherAssignment}>
+                        <span className={styles.teacherLabel}>Instructor:</span>
+                        <span className={styles.teacherName}>{sub.teacher_name}</span>
+                      </div>
                       <div className={styles.subjectStats}>
                         <div className={styles.ssStat}>
                           <div className={styles.ssValue}>{sub.attended}</div>

@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column, Integer, String, Date, DateTime, Text, Enum, ForeignKey,
     UniqueConstraint, Index, JSON, Boolean,
 )
+from sqlalchemy import event
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -17,6 +18,13 @@ class UserRole(str, enum.Enum):
 class AttendanceStatus(str, enum.Enum):
     present = "present"
     absent = "absent"
+    on_leave = "on_leave"
+
+
+class LeaveStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
 
 
 # ── Academic Entities ──────────────────────────────────────────────
@@ -37,11 +45,15 @@ class Section(Base):
     class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(50), nullable=False)
 
+    class_teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
+    
     class_ = relationship("Class", back_populates="sections")
     students = relationship("Student", back_populates="section", lazy="selectin")
+    class_teacher = relationship("Teacher", lazy="selectin")
 
     __table_args__ = (
         Index("ix_sections_class_id", "class_id"),
+        Index("ix_sections_class_teacher_id", "class_teacher_id"),
     )
 
 
@@ -58,17 +70,19 @@ class Subject(Base):
 class ClassSubject(Base):
     """Links subjects to classes (semesters). Persists across batches."""
     __tablename__ = "class_subjects"
-
     id = Column(Integer, primary_key=True, index=True)
     class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
     subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
 
     class_ = relationship("Class")
     subject = relationship("Subject", back_populates="class_links")
+    teacher = relationship("Teacher", lazy="selectin")
 
     __table_args__ = (
         UniqueConstraint("class_id", "subject_id", name="uq_class_subject"),
         Index("ix_class_subjects_class_id", "class_id"),
+        Index("ix_class_subjects_teacher_id", "teacher_id"),
     )
 
 
@@ -122,6 +136,36 @@ class Attendance(Base):
         Index("ix_attendance_subject_id", "subject_id"),
         Index("ix_attendance_date", "date"),
         Index("ix_attendance_student_subject", "student_id", "subject_id"),
+        Index("ix_attendance_status", "status"),
+        Index("ix_attendance_date_status", "date", "status"),
+        Index("ix_attendance_student_date", "student_id", "date"),
+    )
+
+
+# ── Leave Requests ─────────────────────────────────────────────────
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(Enum(LeaveStatus), nullable=False, default=LeaveStatus.pending)
+    handled_by = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
+    handled_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.utcnow())
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.utcnow(),
+                        onupdate=lambda: datetime.utcnow())
+
+    student = relationship("Student", lazy="selectin")
+    handler = relationship("Teacher", foreign_keys=[handled_by], lazy="selectin")
+
+    __table_args__ = (
+        Index("ix_leave_requests_student_id", "student_id"),
+        Index("ix_leave_requests_status", "status"),
+        Index("ix_leave_requests_dates", "start_date", "end_date"),
     )
 
 

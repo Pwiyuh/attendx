@@ -4,11 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login/Login';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
+import TeacherAnalytics from './pages/Teacher/TeacherAnalytics';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import AdminPanel from './pages/Admin/AdminPanel';
 import ProfilePage from './pages/Profile/ProfilePage';
 import LandingPage from './pages/Landing/LandingPage';
 import Onboarding from './pages/Onboarding/Onboarding';
+import LeaveManagement from './pages/Shared/LeaveManagement';
 import GalaxyBackground from './components/ui/GalaxyBackground';
 import api from './services/api';
 
@@ -81,6 +83,11 @@ const App: React.FC = () => {
                 <TeacherDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/teacher/analytics" element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                <TeacherAnalytics />
+              </ProtectedRoute>
+            } />
 
             {/* Student Routes */}
             <Route path="/student" element={
@@ -125,6 +132,11 @@ const App: React.FC = () => {
             <Route path="/profile" element={
               <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
                 <ProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/leave" element={
+              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
+                <LeaveManagement />
               </ProtectedRoute>
             } />
 

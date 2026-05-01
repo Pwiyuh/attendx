@@ -8,7 +8,12 @@ npm run dev
 Admin:admin@college.edu
 pwd:admin123
 
-student:
+student:REG0001(002, 003,etc)
+student123
 
 
-teacher:
+
+teacher:rajesh@college.edu
+teacher123
+priya@college.edu
+teacher123

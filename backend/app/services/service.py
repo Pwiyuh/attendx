@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from app.models.models import (
     Teacher, Student, Class, Section, Subject, ClassSubject, Attendance, AttendanceStatus,
-    AuditLog,
+    AuditLog, LeaveRequest, LeaveStatus,
 )
 from app.utils.auth import hash_password, verify_password
 
@@ -363,18 +363,32 @@ async def submit_bulk_attendance(
             detail="Attendance contains students outside the selected class or section",
         )
 
-    # Delete existing records for this combination
+    # Delete existing records for this combination — PROTECT on_leave records
     await db.execute(
         delete(Attendance).where(
             and_(
                 Attendance.student_id.in_(student_ids),
                 Attendance.subject_id == subject_id,
                 Attendance.date == att_date,
+                Attendance.status != AttendanceStatus.on_leave,  # Never overwrite approved leaves
             )
         )
     )
 
-    # Bulk insert
+    # Only insert for students whose records were not protected (i.e., not on_leave)
+    protected_result = await db.execute(
+        select(Attendance.student_id).where(
+            and_(
+                Attendance.student_id.in_(student_ids),
+                Attendance.subject_id == subject_id,
+                Attendance.date == att_date,
+                Attendance.status == AttendanceStatus.on_leave,
+            )
+        )
+    )
+    protected_ids = {row[0] for row in protected_result.all()}
+
+    # Bulk insert — skip students whose attendance is locked as on_leave
     attendance_objects = [
         Attendance(
             student_id=r["student_id"],
@@ -383,6 +397,7 @@ async def submit_bulk_attendance(
             status=AttendanceStatus(r["status"]),
         )
         for r in records
+        if r["student_id"] not in protected_ids
     ]
     db.add_all(attendance_objects)
     await db.commit()
@@ -423,56 +438,75 @@ async def get_attendance_for_date(
 
 async def get_student_attendance_summary(db: AsyncSession, student_id: int) -> dict:
     """
-    Calculate per-subject attendance summary for a student.
-    Uses aggregated query to avoid N+1 problem.
+    Calculate per-subject attendance summary for a student with class and teacher context.
+    Uses aggregated query and joins to retrieve all academic context.
     """
-    # Get student info
-    student_result = await db.execute(select(Student).where(Student.id == student_id))
-    student = student_result.scalar_one_or_none()
-    if not student:
+    # 1. Get Student + Class + Section + Class Teacher
+    student_query = (
+        select(Student, Section.name.label("section_name"), Class.name.label("class_name"), Teacher.name.label("class_teacher_name"))
+        .join(Section, Student.section_id == Section.id)
+        .join(Class, Student.class_id == Class.id)
+        .outerjoin(Teacher, Section.class_teacher_id == Teacher.id)
+        .where(Student.id == student_id)
+    )
+    student_res = await db.execute(student_query)
+    student_row = student_res.one_or_none()
+    if not student_row:
         return None
+    
+    student_obj, section_name, class_name, class_teacher_name = student_row
 
-    # Aggregated query: group by subject, count total and present
-    result = await db.execute(
+    # 2. Get Subject-wise stats + Subject Teachers
+    # We join with ClassSubject to get the teacher assigned to this class for this subject
+    subjects_query = (
         select(
             Subject.id,
             Subject.name,
-            func.count(Attendance.id).label("total"),
-            func.sum(
-                case(
-                    (Attendance.status == AttendanceStatus.present, 1),
-                    else_=0,
-                )
-            ).label("attended"),
+            func.count(case((Attendance.status != AttendanceStatus.on_leave, 1))).label("total"),
+            func.sum(case((Attendance.status == AttendanceStatus.present, 1), else_=0)).label("attended"),
+            Teacher.name.label("teacher_name")
         )
         .join(Subject, Attendance.subject_id == Subject.id)
+        .outerjoin(ClassSubject, and_(
+            ClassSubject.class_id == student_obj.class_id,
+            ClassSubject.subject_id == Subject.id
+        ))
+        .outerjoin(Teacher, ClassSubject.teacher_id == Teacher.id)
         .where(Attendance.student_id == student_id)
-        .group_by(Subject.id, Subject.name)
+        .group_by(Subject.id, Subject.name, Teacher.name)
         .order_by(Subject.name)
     )
-
-    rows = result.all()
-    subjects = []
+    
+    subjects_res = await db.execute(subjects_query)
+    rows = subjects_res.all()
+    
+    subjects_list = []
     total_attended = 0
-    total_classes = 0
+    total_effective_classes = 0
 
-    for subject_id_val, subject_name, total, attended in rows:
-        percentage = round((attended / total * 100), 1) if total > 0 else 0.0
-        subjects.append({
-            "subject": subject_name,
-            "subject_id": subject_id_val,
-            "attended": attended,
-            "total": total,
+    for sub_id, sub_name, total, attended, teacher_name in rows:
+        total_val = int(total or 0)
+        attended_val = int(attended or 0)
+        percentage = round((attended_val / total_val * 100), 1) if total_val > 0 else 0.0
+        subjects_list.append({
+            "subject": sub_name,
+            "subject_id": sub_id,
+            "attended": attended_val,
+            "total": total_val,
             "percentage": percentage,
+            "teacher_name": teacher_name or "Not Assigned"
         })
-        total_attended += attended
-        total_classes += total
+        total_attended += attended_val
+        total_effective_classes += total_val
 
-    overall = round((total_attended / total_classes * 100), 1) if total_classes > 0 else 0.0
+    overall = round((total_attended / total_effective_classes * 100), 1) if total_effective_classes > 0 else 0.0
 
     return {
-        "student_name": student.name,
-        "subjects": subjects,
+        "student_name": student_obj.name,
+        "class_name": class_name,
+        "section_name": section_name,
+        "class_teacher_name": class_teacher_name or "Not Assigned",
+        "subjects": subjects_list,
         "overall_percentage": overall,
     }
 
@@ -581,6 +615,121 @@ async def get_global_attendance_report(
         ))
 
     return report
+
+
+async def get_class_attendance_analytics(
+    db: AsyncSession, class_id: int, section_id: int, subject_id: int,
+    start_date: Optional[date] = None, end_date: Optional[date] = None
+) -> dict:
+    # Validate
+    subject_result = await db.execute(select(Subject).where(Subject.id == subject_id))
+    if not subject_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Subject not found")
+
+    section_result = await db.execute(
+        select(Section).where(
+            and_(Section.id == section_id, Section.class_id == class_id)
+        )
+    )
+    if not section_result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Section does not belong to the selected class")
+
+    # Base conditions for attendance
+    conditions = [
+        Student.class_id == class_id,
+        Student.section_id == section_id,
+        Attendance.subject_id == subject_id,
+    ]
+    if start_date:
+        conditions.append(Attendance.date >= start_date)
+    if end_date:
+        conditions.append(Attendance.date <= end_date)
+
+    # 1. Daily Trend
+    trend_query = (
+        select(
+            Attendance.date,
+            func.sum(case((Attendance.status == AttendanceStatus.present, 1), else_=0)).label("present"),
+            func.sum(case((Attendance.status == AttendanceStatus.absent, 1), else_=0)).label("absent"),
+        )
+        .join(Student, Attendance.student_id == Student.id)
+        .where(and_(*conditions))
+        .group_by(Attendance.date)
+        .order_by(Attendance.date)
+    )
+    trend_result = await db.execute(trend_query)
+    daily_trend = [
+        {"date": row.date, "present": row.present or 0, "absent": row.absent or 0}
+        for row in trend_result.all()
+    ]
+
+    # 2. Student Progress
+    # First, get all students in class/section to show even those with 0 attendance records
+    student_query = select(Student).where(
+        and_(Student.class_id == class_id, Student.section_id == section_id)
+    ).order_by(Student.name)
+    student_result = await db.execute(student_query)
+    all_students = student_result.scalars().all()
+    
+    # We outer join attendance for this subject and optional dates
+    att_conditions = [
+        Attendance.student_id == Student.id,
+        Attendance.subject_id == subject_id,
+    ]
+    if start_date:
+        att_conditions.append(Attendance.date >= start_date)
+    if end_date:
+        att_conditions.append(Attendance.date <= end_date)
+
+    student_stats_query = (
+        select(
+            Student.id,
+            func.count(case((Attendance.status != AttendanceStatus.on_leave, 1))).label("total"),
+            func.sum(case((Attendance.status == AttendanceStatus.present, 1), else_=0)).label("attended")
+        )
+        .outerjoin(Attendance, and_(*att_conditions))
+        .where(and_(Student.class_id == class_id, Student.section_id == section_id))
+        .group_by(Student.id)
+    )
+    student_stats_result = await db.execute(student_stats_query)
+    stats_map = {row.id: {"total": row.total or 0, "attended": row.attended or 0} for row in student_stats_result.all()}
+
+    students_progress = []
+    total_attended = 0
+    total_records = 0
+
+    for student in all_students:
+        stats = stats_map.get(student.id, {"total": 0, "attended": 0})
+        attended = int(stats["attended"])
+        total = int(stats["total"])
+        percentage = round((attended / total * 100), 1) if total > 0 else 0.0
+
+        students_progress.append({
+            "student_id": student.id,
+            "student_name": student.name,
+            "attended": attended,
+            "total": total,
+            "percentage": percentage
+        })
+
+        total_attended += attended
+        total_records += total
+
+    # Calculate overall stats
+    total_students = len(all_students)
+    overall_attendance_percentage = round((total_attended / total_records * 100), 1) if total_records > 0 else 0.0
+
+    # Average attendance is the average of the student percentages
+    sum_percentages = sum(sp["percentage"] for sp in students_progress)
+    average_attendance = round((sum_percentages / total_students), 1) if total_students > 0 else 0.0
+
+    return {
+        "total_students": total_students,
+        "overall_attendance_percentage": overall_attendance_percentage,
+        "average_attendance": average_attendance,
+        "daily_trend": daily_trend,
+        "students": students_progress
+    }
 
 
 # ── Audit Log Service ─────────────────────────────────────────────
@@ -769,3 +918,223 @@ async def delete_section_with_cascade(
         "message": f"Section '{full_name}' and all associated data deleted successfully",
         **meta,
     }
+
+
+# ── Leave Request Services ────────────────────────────────────────
+
+async def create_leave_request(
+    db: AsyncSession, student_id: int, start_date, end_date, reason: str
+) -> LeaveRequest:
+    """Create a new leave request with overlap validation."""
+    # Check for overlapping pending/approved requests
+    overlap_result = await db.execute(
+        select(LeaveRequest).where(
+            and_(
+                LeaveRequest.student_id == student_id,
+                LeaveRequest.status.in_([LeaveStatus.pending, LeaveStatus.approved]),
+                LeaveRequest.start_date <= end_date,
+                LeaveRequest.end_date >= start_date,
+            )
+        )
+    )
+    if overlap_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400,
+            detail="A pending or approved leave request already exists for this date range"
+        )
+
+    leave = LeaveRequest(
+        student_id=student_id,
+        start_date=start_date,
+        end_date=end_date,
+        reason=reason,
+    )
+    db.add(leave)
+    await db.commit()
+    await db.refresh(leave)
+    return leave
+
+
+async def get_leaves(
+    db: AsyncSession, student_id: Optional[int] = None, status: Optional[str] = None
+) -> list:
+    """Fetch leave requests. Students see only their own; teachers see all."""
+    conditions = []
+    if student_id:
+        conditions.append(LeaveRequest.student_id == student_id)
+    if status:
+        conditions.append(LeaveRequest.status == LeaveStatus(status))
+
+    query = (
+        select(LeaveRequest)
+        .options(selectinload(LeaveRequest.student), selectinload(LeaveRequest.handler))
+        .where(and_(*conditions) if conditions else True)
+        .order_by(LeaveRequest.created_at.desc())
+    )
+    result = await db.execute(query)
+    leaves = result.scalars().all()
+
+    return [
+        {
+            "id": l.id,
+            "student_id": l.student_id,
+            "student_name": l.student.name if l.student else "Unknown",
+            "start_date": l.start_date,
+            "end_date": l.end_date,
+            "reason": l.reason,
+            "status": l.status.value,
+            "handled_by": l.handled_by,
+            "handler_name": l.handler.name if l.handler else None,
+            "handled_at": l.handled_at,
+            "created_at": l.created_at,
+        }
+        for l in leaves
+    ]
+
+
+async def update_leave_status(
+    db: AsyncSession, leave_id: int, new_status: str, handler_id: int
+) -> dict:
+    """
+    Approve or reject a leave request.
+    Uses row-level locking and a single transaction for full atomicity.
+    On approval: upserts attendance with on_leave for all relevant dates/subjects.
+    """
+    from datetime import timedelta
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+    async with db.begin():
+        # Row-level lock: only one concurrent approval can proceed
+        result = await db.execute(
+            select(LeaveRequest)
+            .where(LeaveRequest.id == leave_id)
+            .with_for_update()
+        )
+        leave = result.scalar_one_or_none()
+
+        if not leave:
+            raise HTTPException(status_code=404, detail="Leave request not found")
+
+        # Idempotency: reject if already processed
+        if leave.status != LeaveStatus.pending:
+            raise HTTPException(
+                status_code=400,
+                detail="Leave request already processed — cannot modify a non-pending request"
+            )
+
+        if new_status not in ("approved", "rejected"):
+            raise HTTPException(status_code=400, detail="Status must be 'approved' or 'rejected'")
+
+        leave.status = LeaveStatus(new_status)
+        leave.handled_by = handler_id
+        leave.handled_at = datetime.utcnow()
+
+        upserted_count = 0
+
+        if new_status == "approved":
+            # Get student's class to find all subjects
+            student_result = await db.execute(
+                select(Student).where(Student.id == leave.student_id)
+            )
+            student = student_result.scalar_one()
+
+            # Get all subjects for this student's class
+            # NOTE: This assumes all class subjects are relevant (no timetable available).
+            # TODO: Replace with timetable-based filtering when timetable is implemented.
+            subjects_result = await db.execute(
+                select(ClassSubject.subject_id).where(
+                    ClassSubject.class_id == student.class_id
+                )
+            )
+            subject_ids = [row[0] for row in subjects_result.all()]
+
+            # Iterate inclusive date range
+            current = leave.start_date
+            while current <= leave.end_date:
+                is_weekend = current.weekday() >= 5  # Saturday=5, Sunday=6
+
+                for subj_id in subject_ids:
+                    if is_weekend:
+                        # Weekend: only update if a record already exists (no new inserts)
+                        await db.execute(
+                            Attendance.__table__.update()
+                            .where(
+                                and_(
+                                    Attendance.student_id == leave.student_id,
+                                    Attendance.subject_id == subj_id,
+                                    Attendance.date == current,
+                                )
+                            )
+                            .values(status=AttendanceStatus.on_leave)
+                        )
+                    else:
+                        # Weekday: full upsert
+                        existing = await db.execute(
+                            select(Attendance).where(
+                                and_(
+                                    Attendance.student_id == leave.student_id,
+                                    Attendance.subject_id == subj_id,
+                                    Attendance.date == current,
+                                )
+                            )
+                        )
+                        record = existing.scalar_one_or_none()
+                        if record:
+                            record.status = AttendanceStatus.on_leave
+                        else:
+                            db.add(Attendance(
+                                student_id=leave.student_id,
+                                subject_id=subj_id,
+                                date=current,
+                                status=AttendanceStatus.on_leave,
+                            ))
+                        upserted_count += 1
+
+                current += timedelta(days=1)
+
+        # Audit log — inside the same transaction
+        handler_result = await db.execute(select(Teacher).where(Teacher.id == handler_id))
+        handler = handler_result.scalar_one_or_none()
+        db.add(AuditLog(
+            action=f"LEAVE_{new_status.upper()}",
+            entity_type="leave_request",
+            entity_id=leave.id,
+            entity_name=f"Leave #{leave.id} ({leave.start_date} to {leave.end_date})",
+            performed_by=handler_id,
+            timestamp=datetime.utcnow(),
+            metadata_={
+                "leave_id": leave.id,
+                "student_id": leave.student_id,
+                "start_date": leave.start_date.isoformat(),
+                "end_date": leave.end_date.isoformat(),
+                "new_status": new_status,
+                "handler_name": handler.name if handler else str(handler_id),
+                "attendance_records_affected": upserted_count,
+            },
+        ))
+        # Transaction commits here — all-or-nothing
+
+    return {"message": f"Leave request {new_status}", "attendance_records_updated": upserted_count}
+
+
+async def withdraw_leave_request(db: AsyncSession, leave_id: int, student_id: int) -> dict:
+    """Allow a student to withdraw their own pending leave request."""
+    result = await db.execute(
+        select(LeaveRequest).where(
+            and_(LeaveRequest.id == leave_id, LeaveRequest.student_id == student_id)
+        )
+    )
+    leave = result.scalar_one_or_none()
+
+    if not leave:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+
+    if leave.status != LeaveStatus.pending:
+        raise HTTPException(
+            status_code=400,
+            detail="Only pending leave requests can be withdrawn"
+        )
+
+    await db.delete(leave)
+    await db.commit()
+    return {"message": "Leave request withdrawn successfully"}

@@ -1,0 +1,150 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .statIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.indigo { background: rgba(99, 102, 241, 0.1); color: #818cf8; }
+    &.emerald { background: rgba(16, 185, 129, 0.1); color: #34d399; }
+    &.amber { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+  }
+
+  .statInfo {
+    .statValue {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fafafa;
+      line-height: 1.2;
+    }
+    .statLabel {
+      font-size: 0.875rem;
+      color: #a1a1aa;
+      margin-top: 0.25rem;
+    }
+  }
+}
+
+.chartContainer {
+  height: 350px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.searchBox {
+  max-width: 300px;
+  width: 100%;
+}
+
+.progressBarContainer {
+  width: 100%;
+  height: 8px;
+  background-color: #27272a;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  margin-top: 4px;
+}
+
+.statusCritical {
+  color: #ef4444;
+}
+
+.statusWarning {
+  color: #eab308;
+}
+
+.statusGood {
+  color: #22c55e;
+}
+
+.bgCritical {
+  background-color: #ef4444;
+}
+
+.bgWarning {
+  background-color: #eab308;
+}
+
+.bgGood {
+  background-color: #22c55e;
+}
+
+.dateInput {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #fafafa;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  outline: none;
+
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.flexCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #a1a1aa;
+}

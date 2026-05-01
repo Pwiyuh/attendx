@@ -45,6 +45,8 @@ export const getStudentsBySection = (classId: number, sectionId: number, page = 
 export const submitBulkAttendance = (data: unknown) => api.post('/teacher/attendance/bulk', data);
 export const getAttendanceForDate = (classId: number, sectionId: number, subjectId: number, date: string) =>
   api.get('/teacher/attendance', { params: { class_id: classId, section_id: sectionId, subject_id: subjectId, date } });
+export const getTeacherClassAnalytics = (classId: number, sectionId: number, subjectId: number, startDate?: string, endDate?: string) =>
+  api.get('/teacher/analytics', { params: { class_id: classId, section_id: sectionId, subject_id: subjectId, start_date: startDate, end_date: endDate } });
 
 // Student
 export const getStudentAttendance = (studentId: number) =>
@@ -88,5 +90,15 @@ export const teacherGetClassSubjects = (classId: number) => api.get(`/teacher/cl
 // Exports
 export const exportAttendanceApi = (params: { class_id?: number, section_id?: number, subject_id?: number, start_date: string, end_date: string }, role: 'admin' | 'teacher') =>
   api.get(`/${role}/attendance/export`, { params, responseType: 'blob' });
+
+// Leave Management
+export const requestLeave = (data: { start_date: string; end_date: string; reason: string }) =>
+  api.post('/leave', data);
+export const getLeaves = (status?: string) =>
+  api.get('/leave', { params: status ? { status } : {} });
+export const updateLeaveStatus = (leaveId: number, status: 'approved' | 'rejected') =>
+  api.patch(`/leave/${leaveId}`, { status });
+export const withdrawLeave = (leaveId: number) =>
+  api.delete(`/leave/${leaveId}`);
 
 export default api;

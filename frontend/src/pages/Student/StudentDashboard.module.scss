@@ -126,6 +126,26 @@
   }
 }
 
+.classContext {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  margin-bottom: $space-3;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+}
+
+.classTeacher {
+  font-size: $font-sm;
+  color: $text-secondary;
+  strong {
+    color: $text-primary;
+  }
+}
+
 .overallStats {
   display: flex;
   gap: $space-8;
@@ -179,6 +199,23 @@
 .subjectName {
   font-weight: $weight-semibold;
   color: $text-primary;
+}
+
+.teacherAssignment {
+  margin-top: $space-3;
+  font-size: $font-xs;
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  
+  .teacherLabel {
+    color: $text-muted;
+  }
+  
+  .teacherName {
+    color: $accent-primary;
+    font-weight: $weight-medium;
+  }
 }
 
 .subjectStats {

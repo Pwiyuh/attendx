@@ -4,18 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 import csv
 import io
+from typing import Optional
 
 from app.database import get_db
 from app.schemas.schemas import (
     BulkAttendanceRequest, AttendanceRecordOut, SubjectCreate, SubjectUpdate,
     StudentOut, PaginatedStudents, ClassWithSections, SubjectOut,
+    ClassAnalyticsResponse
 )
 from app.services.service import (
     get_students_by_section, submit_bulk_attendance,
     get_attendance_for_date, get_all_classes,
     get_sections_by_class, get_all_subjects,
     get_attendance_report, create_subject, update_subject,
-    get_subjects_for_class,
+    get_subjects_for_class, get_class_attendance_analytics
 )
 from app.utils.auth import require_role
 
@@ -133,4 +135,18 @@ async def export_attendance(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.get("/analytics", response_model=ClassAnalyticsResponse)
+async def get_teacher_analytics(
+    class_id: int,
+    section_id: int,
+    subject_id: int,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    _user: dict = Depends(require_role("teacher", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_class_attendance_analytics(
+        db, class_id, section_id, subject_id, start_date, end_date
     )

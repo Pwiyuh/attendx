@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, PlayCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import GlassCard from '../../../components/ui/GlassCard';
+import dashboardPreview from '../../../assets/dashboard-preview.png';
 
 const Hero: React.FC = () => {
   return (
@@ -31,34 +32,19 @@ const Hero: React.FC = () => {
         <div className="mt-20 mx-auto max-w-5xl relative animate-float">
           <GlassCard glow className="p-2 sm:p-4">
             <div className="rounded-xl overflow-hidden border border-white/10 bg-[#0B0B1A]/80 shadow-2xl relative aspect-[16/9] flex items-center justify-center">
-              {/* Fake UI */}
-              <div className="absolute inset-x-0 top-0 h-10 border-b border-white/10 bg-white/5 flex items-center px-4 space-x-2">
+              {/* Browser Window UI Decoration */}
+              <div className="absolute inset-x-0 top-0 h-10 border-b border-white/10 bg-white/5 flex items-center px-4 space-x-2 z-20 backdrop-blur-sm">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
-              <div className="w-full h-full pt-10 px-6 flex flex-col gap-6">
-                 {/* Mock UI elements */}
-                 <div className="flex justify-between items-center mt-6">
-                    <div className="w-1/3 h-8 bg-white/10 rounded-lg animate-pulse" />
-                    <div className="w-32 h-8 bg-galaxy-purple/40 rounded-full" />
-                 </div>
-                 <div className="grid grid-cols-3 gap-4 h-24">
-                   <div className="bg-white/5 rounded-xl border border-white/5 p-4 flex flex-col justify-center">
-                     <div className="w-1/2 h-4 bg-white/10 rounded mb-3" />
-                     <div className="w-3/4 h-6 bg-white/20 rounded" />
-                   </div>
-                   <div className="bg-white/5 rounded-xl border border-white/5 p-4 flex flex-col justify-center">
-                     <div className="w-1/2 h-4 bg-white/10 rounded mb-3" />
-                     <div className="w-3/4 h-6 bg-white/20 rounded" />
-                   </div>
-                   <div className="bg-white/5 rounded-xl border border-white/5 p-4 flex flex-col justify-center">
-                     <div className="w-1/2 h-4 bg-white/10 rounded mb-3" />
-                     <div className="w-3/4 h-6 bg-white/20 rounded" />
-                   </div>
-                 </div>
-                 <div className="flex-1 bg-white/5 rounded-xl border border-white/5 mt-2" />
-              </div>
+              
+              {/* Dashboard Image */}
+              <img 
+                src={dashboardPreview} 
+                alt="AttendX Dashboard Preview" 
+                className="w-full h-full object-cover pt-10"
+              />
             </div>
           </GlassCard>
         </div>

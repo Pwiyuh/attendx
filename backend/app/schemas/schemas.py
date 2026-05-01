@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime, timezone
 from enum import Enum
 
 
@@ -163,10 +163,14 @@ class SubjectAttendanceSummary(BaseModel):
     attended: int
     total: int
     percentage: float
+    teacher_name: Optional[str] = None
 
 
 class StudentAttendanceResponse(BaseModel):
     student_name: str
+    class_name: str
+    section_name: str
+    class_teacher_name: Optional[str] = None
     subjects: List[SubjectAttendanceSummary]
     overall_percentage: float
 
@@ -183,6 +187,28 @@ class AttendanceHistoryItem(BaseModel):
 class StudentAttendanceHistoryResponse(BaseModel):
     student_name: str
     history: List[AttendanceHistoryItem]
+
+
+# ── Teacher Analytics ─────────────────────────────────────────────
+
+class StudentProgress(BaseModel):
+    student_id: int
+    student_name: str
+    attended: int
+    total: int
+    percentage: float
+
+class DailyTrend(BaseModel):
+    date: date
+    present: int
+    absent: int
+
+class ClassAnalyticsResponse(BaseModel):
+    total_students: int
+    overall_attendance_percentage: float
+    average_attendance: float
+    daily_trend: List[DailyTrend]
+    students: List[StudentProgress]
 
 
 # ── Admin ─────────────────────────────────────────────────────────
@@ -232,3 +258,49 @@ class AuditLogOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+# ── Leave Requests ────────────────────────────────────────────────
+
+class LeaveStatusEnum(str, Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class LeaveRequestCreate(BaseModel):
+    start_date: date
+    end_date: date
+    reason: str = Field(..., min_length=5, max_length=1000)
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        today = datetime.now(timezone.utc).date()
+        if self.start_date < today:
+            raise ValueError("Start date cannot be in the past")
+        if self.end_date < self.start_date:
+            raise ValueError("End date must be on or after start date")
+        duration = (self.end_date - self.start_date).days + 1
+        if duration > 30:
+            raise ValueError("Leave duration cannot exceed 30 days")
+        return self
+
+
+class LeaveRequestUpdate(BaseModel):
+    status: LeaveStatusEnum
+
+
+class LeaveRequestOut(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    start_date: date
+    end_date: date
+    reason: str
+    status: LeaveStatusEnum
+    handled_by: Optional[int] = None
+    handler_name: Optional[str] = None
+    handled_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
