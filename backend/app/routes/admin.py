@@ -11,7 +11,9 @@ from app.schemas.schemas import (
     StudentCreate, TeacherCreate,
     ClassOut, SectionOut, SubjectOut, StudentOut, TeacherOut,
     PaginatedStudents, DeleteConfirmRequest, DeleteResponse,
+    DashboardOverviewResponse, DashboardAlert, DashboardTrendsResponse, DashboardActivityResponse
 )
+from app.services.admin_service import AdminAnalyticsService
 from app.services.service import (
     create_class, create_section, create_subject, update_subject, delete_subject,
     assign_subject_to_class, remove_subject_from_class, get_subjects_for_class,
@@ -236,3 +238,39 @@ async def export_attendance(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# ── Dashboard Analytics ───────────────────────────────────────────
+
+@router.get("/dashboard/overview", response_model=DashboardOverviewResponse)
+async def get_dashboard_overview(
+    _user: dict = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await AdminAnalyticsService.get_dashboard_overview(db)
+
+
+@router.get("/dashboard/alerts", response_model=List[DashboardAlert])
+async def get_dashboard_alerts(
+    _user: dict = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import datetime
+    return await AdminAnalyticsService.get_action_alerts(db, datetime.now().date())
+
+
+@router.get("/dashboard/trends", response_model=DashboardTrendsResponse)
+async def get_dashboard_trends(
+    _user: dict = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await AdminAnalyticsService.get_global_trends(db)
+
+
+@router.get("/dashboard/activity", response_model=DashboardActivityResponse)
+async def get_dashboard_activity(
+    _user: dict = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    activities = await AdminAnalyticsService.get_activity(db)
+    return DashboardActivityResponse(activities=activities)

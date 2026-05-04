@@ -11,6 +11,7 @@ import ProfilePage from './pages/Profile/ProfilePage';
 import LandingPage from './pages/Landing/LandingPage';
 import Onboarding from './pages/Onboarding/Onboarding';
 import LeaveManagement from './pages/Shared/LeaveManagement';
+import AdminDashboardDebug from './pages/Admin/AdminDashboardDebug';
 import GalaxyBackground from './components/ui/GalaxyBackground';
 import api from './services/api';
 
@@ -100,6 +101,11 @@ const App: React.FC = () => {
             <Route path="/admin" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/debug" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboardDebug />
               </ProtectedRoute>
             } />
             <Route path="/admin/students" element={

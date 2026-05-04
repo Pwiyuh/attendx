@@ -304,3 +304,45 @@ class LeaveRequestOut(BaseModel):
 
     class Config:
         from_attributes = True
+# ── Admin Dashboard ───────────────────────────────────────────────
+
+class DashboardOverviewResponse(BaseModel):
+    health_score: float
+    health_status: str
+    total_alerts: int
+    high_priority_alerts: int
+    marked_today: int
+    pending_today: int
+    last_updated: datetime
+
+
+class AlertActionMetadata(BaseModel):
+    route: str
+    params: dict
+
+
+class DashboardAlert(BaseModel):
+    type: str
+    priority: str
+    title: str
+    message: str
+    metadata: dict
+
+
+class DashboardTrendsResponse(BaseModel):
+    dates: List[date]
+    health_scores: List[float]
+    attendance_rates: List[float]
+
+
+class ActivityItem(BaseModel):
+    id: int
+    action: str
+    description: str
+    performed_by: str
+    timestamp: datetime
+    is_critical: bool
+
+
+class DashboardActivityResponse(BaseModel):
+    activities: List[ActivityItem]

@@ -50,6 +50,7 @@ class Section(Base):
     class_ = relationship("Class", back_populates="sections")
     students = relationship("Student", back_populates="section", lazy="selectin")
     class_teacher = relationship("Teacher", lazy="selectin")
+    timetable = relationship("Timetable", back_populates="section", lazy="selectin", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_sections_class_id", "class_id"),
@@ -65,6 +66,7 @@ class Subject(Base):
     total_classes = Column(Integer, nullable=True)  # Total planned classes per semester
 
     class_links = relationship("ClassSubject", back_populates="subject", lazy="selectin")
+    timetable_entries = relationship("Timetable", back_populates="subject", lazy="selectin")
 
 
 class ClassSubject(Base):
@@ -83,6 +85,46 @@ class ClassSubject(Base):
         UniqueConstraint("class_id", "subject_id", name="uq_class_subject"),
         Index("ix_class_subjects_class_id", "class_id"),
         Index("ix_class_subjects_teacher_id", "teacher_id"),
+    )
+
+
+class Timetable(Base):
+    """Specific scheduling for a section. Defines which subject is taught on which day by whom."""
+    __tablename__ = "timetables"
+
+    id = Column(Integer, primary_key=True, index=True)
+    section_id = Column(Integer, ForeignKey("sections.id", ondelete="CASCADE"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
+    day_of_week = Column(Integer, nullable=False)  # 0-6 (Monday to Sunday)
+
+    section = relationship("Section", back_populates="timetable")
+    subject = relationship("Subject", back_populates="timetable_entries")
+    teacher = relationship("Teacher")
+
+    __table_args__ = (
+        UniqueConstraint("section_id", "subject_id", "day_of_week", name="uq_section_subject_day"),
+        Index("ix_timetables_section_day", "section_id", "day_of_week"),
+        Index("ix_timetables_teacher_id", "teacher_id"),
+    )
+
+
+# ── Analytics Snapshots ────────────────────────────────────────────
+
+class DailySnapshot(Base):
+    """Immutable historical snapshots of institutional performance."""
+    __tablename__ = "daily_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(Date, nullable=False, unique=True, index=True)
+    health_score = Column(Integer, nullable=False)
+    total_scheduled = Column(Integer, nullable=False)
+    total_complete = Column(Integer, nullable=False)
+    attendance_rate = Column(Integer, nullable=False) # Percentage stored as integer
+    metadata_ = Column("metadata", JSON, nullable=True) # Detailed breakdown
+
+    __table_args__ = (
+        Index("ix_daily_snapshots_date", "date"),
     )
 
 

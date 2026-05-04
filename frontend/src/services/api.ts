@@ -101,4 +101,47 @@ export const updateLeaveStatus = (leaveId: number, status: 'approved' | 'rejecte
 export const withdrawLeave = (leaveId: number) =>
   api.delete(`/leave/${leaveId}`);
 
+// Admin Dashboard
+export interface DashboardOverview {
+  health_score: number;
+  health_status: string;
+  total_alerts: number;
+  high_priority_alerts: number;
+  marked_today: number;
+  pending_today: number;
+  last_updated: string;
+}
+
+export interface DashboardAlert {
+  type: string;
+  priority: string;
+  title: string;
+  message: string;
+  metadata: any;
+}
+
+export interface DashboardTrends {
+  dates: string[];
+  health_scores: number[];
+  attendance_rates: number[];
+}
+
+export interface ActivityItem {
+  id: number;
+  action: string;
+  description: string;
+  performed_by: string;
+  timestamp: string;
+  is_critical: boolean;
+}
+
+export interface DashboardActivity {
+  activities: ActivityItem[];
+}
+
+export const getAdminDashboardOverview = (): Promise<{ data: DashboardOverview }> => api.get('/admin/dashboard/overview');
+export const getAdminDashboardAlerts = (): Promise<{ data: DashboardAlert[] }> => api.get('/admin/dashboard/alerts');
+export const getAdminDashboardTrends = (): Promise<{ data: DashboardTrends }> => api.get('/admin/dashboard/trends');
+export const getAdminDashboardActivity = (): Promise<{ data: DashboardActivity }> => api.get('/admin/dashboard/activity');
+
 export default api;
