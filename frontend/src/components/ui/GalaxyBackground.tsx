@@ -407,11 +407,12 @@ const GalaxyBackground: React.FC<GalaxyBackgroundProps> = ({
     <div
       className={className}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         inset: 0,
         overflow: 'hidden',
         isolation: 'isolate',
         pointerEvents: 'none',
+        zIndex: -1,
         // Base void colour
         background: '#020617',
       }}

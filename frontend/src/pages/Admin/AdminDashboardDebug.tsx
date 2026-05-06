@@ -3,7 +3,9 @@ import {
   getAdminDashboardOverview, 
   getAdminDashboardAlerts, 
   getAdminDashboardTrends, 
-  getAdminDashboardActivity,
+  getAdminDashboardActivity
+} from '../../services/api';
+import type {
   DashboardOverview,
   DashboardAlert,
   DashboardTrends,

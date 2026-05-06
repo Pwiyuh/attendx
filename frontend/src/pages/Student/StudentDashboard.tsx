@@ -5,7 +5,8 @@ import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { ProgressBar, Badge } from '../../components/ui/Extras';
 import Table from '../../components/ui/Table';
 import Select from '../../components/ui/Select';
-import { getStudentAttendance, getStudentHistory } from '../../services/api';
+import { getStudentAttendance, getStudentHistory, getStudentPerformance } from '../../services/api';
+import type { StudentPerformanceAnalytics } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine } from 'recharts';
 
@@ -33,7 +34,7 @@ interface HistoryItem {
   status: 'present' | 'absent';
 }
 
-type TabType = 'overview' | 'analytics' | 'history';
+type TabType = 'overview' | 'analytics' | 'history' | 'performance';
 type RangeType = 'month' | '3months' | 'semester';
 
 const formatDate = (dateStr: string) => {
@@ -71,6 +72,11 @@ const StudentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [range, setRange] = useState<RangeType>('month');
+  
+  // Performance
+  const [performanceData, setPerformanceData] = useState<StudentPerformanceAnalytics | null>(null);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
+  const [performanceError, setPerformanceError] = useState<string | null>(null);
   
   // Customizable Baseline Target
   const [targetPercent, setTargetPercent] = useState<number>(75);
@@ -114,6 +120,22 @@ const StudentDashboard: React.FC = () => {
       fetchHistory();
     }
   }, [activeTab, fetchHistory]);
+
+  useEffect(() => {
+    const fetchPerformance = async () => {
+      if (!user || activeTab !== 'performance' || performanceData) return;
+      setPerformanceLoading(true);
+      try {
+        const res = await getStudentPerformance(user.user_id);
+        setPerformanceData(res.data);
+      } catch (err: any) {
+        setPerformanceError(err.response?.data?.detail || 'Failed to fetch performance data');
+      } finally {
+        setPerformanceLoading(false);
+      }
+    };
+    fetchPerformance();
+  }, [activeTab, user, performanceData]);
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -221,7 +243,13 @@ const StudentDashboard: React.FC = () => {
             className={`${styles.tab} ${activeTab === 'analytics' ? styles.active : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
-            Analytics
+            Attendance Analytics
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'performance' ? styles.active : ''}`}
+            onClick={() => setActiveTab('performance')}
+          >
+            Academic Performance
           </button>
           <button 
             className={`${styles.tab} ${activeTab === 'history' ? styles.active : ''}`}
@@ -364,7 +392,7 @@ const StudentDashboard: React.FC = () => {
                         <RechartsTooltip 
                           cursor={{fill: '#27272a', opacity: 0.4}} 
                           contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '8px' }}
-                          formatter={(value: number) => [`${value}%`, 'Attendance']}
+                          formatter={(value: any) => [`${value}%`, 'Attendance']}
                         />
                         <ReferenceLine y={targetPercent} stroke="#6366f1" strokeDasharray="3 3" label={{ position: 'top', value: 'Target', fill: '#6366f1', fontSize: 12 }} />
                         <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
@@ -406,7 +434,7 @@ const StudentDashboard: React.FC = () => {
                           <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
                           <RechartsTooltip 
                             contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '8px' }}
-                            formatter={(value: number) => [`${value}%`, 'Attendance']}
+                            formatter={(value: any) => [`${value}%`, 'Attendance']}
                           />
                           <ReferenceLine y={targetPercent} stroke="#6366f1" strokeDasharray="3 3" />
                           <Line type="monotone" dataKey="percentage" stroke="#a78bfa" strokeWidth={3} dot={{ fill: '#a78bfa', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#c084fc' }} />
@@ -446,6 +474,94 @@ const StudentDashboard: React.FC = () => {
               )}
             </CardBody>
           </Card>
+        )}
+
+        {activeTab === 'performance' && (
+          <div className={styles.analyticsContainer}>
+            {performanceLoading ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#71717a' }}>Loading academic performance...</div>
+            ) : performanceError ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#ef4444' }}>{performanceError}</div>
+            ) : performanceData ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                  <Card>
+                    <CardBody style={{ padding: 20 }}>
+                      <div style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: 8 }}>Overall Average</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#6366f1' }}>{performanceData.overall_average.toFixed(1)}%</div>
+                      <Badge variant={performanceData.overall_average >= targetPercent ? 'success' : 'warning'} style={{ marginTop: 8 }}>
+                        Trend: {performanceData.trend.charAt(0).toUpperCase() + performanceData.trend.slice(1)}
+                      </Badge>
+                    </CardBody>
+                  </Card>
+                  
+                  <Card>
+                    <CardBody style={{ padding: 20 }}>
+                      <div style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: 8 }}>Risk Level</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: performanceData.risk_level === 'Low' ? '#22c55e' : performanceData.risk_level === 'Medium' ? '#eab308' : '#ef4444' }}>
+                        {performanceData.risk_level}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#a1a1aa', marginTop: 8 }}>
+                        {performanceData.effort_vs_output}
+                      </div>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardBody style={{ padding: 20 }}>
+                      <div style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: 8 }}>Consistency</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f4f4f5' }}>
+                        {performanceData.consistency}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#a1a1aa', marginTop: 8 }}>
+                        Velocity: {performanceData.velocity > 0 ? '+' : ''}{performanceData.velocity}%
+                      </div>
+                    </CardBody>
+                  </Card>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, marginTop: 24 }}>
+                  <Card>
+                    <CardHeader title="Subject Averages" description="Your marks across different subjects" />
+                    <CardBody>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {Object.entries(performanceData.subject_averages).map(([subject, avg]) => (
+                          <div key={subject}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <span style={{ color: '#f4f4f5' }}>{subject}</span>
+                              <span style={{ fontWeight: 'bold' }}>{avg.toFixed(1)}%</span>
+                            </div>
+                            <ProgressBar value={avg} />
+                          </div>
+                        ))}
+                      </div>
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader title="Actionable Recommendations" description="Based on your Effort vs Output matrix" />
+                    <CardBody>
+                      {performanceData.recommendations.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {performanceData.recommendations.map((rec, idx) => (
+                            <div key={idx} style={{ padding: 16, backgroundColor: '#18181b', borderRadius: 8, borderLeft: '4px solid #6366f1' }}>
+                              <span style={{ color: '#d4d4d8' }}>{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ color: '#71717a' }}>No specific recommendations at this time.</div>
+                      )}
+                    </CardBody>
+                  </Card>
+                </div>
+              </>
+            ) : (
+               <div style={{ padding: 40, textAlign: 'center', color: '#71717a', backgroundColor: '#18181b', borderRadius: 8 }}>
+                 No performance data available. Please ensure marks are updated.
+               </div>
+            )}
+          </div>
         )}
       </div>
     </Layout>

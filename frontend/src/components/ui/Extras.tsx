@@ -7,10 +7,11 @@ import classNames from 'classnames';
 interface BadgeProps {
   variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children }) => (
-  <span className={classNames(styles.badge, styles[variant])}>{children}</span>
+export const Badge: React.FC<BadgeProps> = ({ variant = 'neutral', children, style }) => (
+  <span className={classNames(styles.badge, styles[variant])} style={style}>{children}</span>
 );
 
 // ── Progress Bar ─────────────────────────────────────────────────

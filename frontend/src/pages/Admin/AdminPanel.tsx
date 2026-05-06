@@ -20,11 +20,14 @@ import {
 } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import {
-  GraduationCap, Users, BookOpen, School, Plus, Trash2, Download, FileSpreadsheet,
-  Pencil, X, Check, Link2, Unlink,
+  GraduationCap, Users, BookOpen, School, Plus, Trash2, FileSpreadsheet,
+  Pencil, X, Check, Link2, Unlink, LayoutDashboard
 } from 'lucide-react';
+import AdminDashboardTab from './AdminDashboardTab';
+import StudentAnalyticsDrawer from '../../components/admin/StudentAnalyticsDrawer';
+import TeacherAnalyticsDrawer from '../../components/admin/TeacherAnalyticsDrawer';
 
-type TabKey = 'students' | 'teachers' | 'subjects' | 'classes' | 'reports';
+type TabKey = 'dashboard' | 'students' | 'teachers' | 'subjects' | 'classes' | 'reports';
 
 interface SectionData {
   id: number;
@@ -73,6 +76,7 @@ interface TeacherForm {
 }
 
 const TAB_PATHS: Record<TabKey, string> = {
+  dashboard: '/admin/dashboard',
   students: '/admin/students',
   teachers: '/admin/teachers',
   subjects: '/admin/subjects',
@@ -81,11 +85,12 @@ const TAB_PATHS: Record<TabKey, string> = {
 };
 
 const getTabFromPath = (pathname: string): TabKey => {
+  if (pathname === '/admin/students') return 'students';
   if (pathname === '/admin/teachers') return 'teachers';
   if (pathname === '/admin/subjects') return 'subjects';
   if (pathname === '/admin/classes') return 'classes';
   if (pathname === '/admin/reports') return 'reports';
-  return 'students';
+  return 'dashboard';
 };
 
 const getErrorMessage = (error: unknown, fallback = 'Error') => (
@@ -148,6 +153,9 @@ const AdminPanel: React.FC = () => {
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0],
   });
+
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
 
   const loadStudents = useCallback(async () => {
     try {
@@ -389,6 +397,7 @@ const AdminPanel: React.FC = () => {
   };
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
     { key: 'students', label: 'Students', icon: <GraduationCap size={16} /> },
     { key: 'teachers', label: 'Teachers', icon: <Users size={16} /> },
     { key: 'subjects', label: 'Subjects', icon: <BookOpen size={16} /> },
@@ -410,6 +419,8 @@ const AdminPanel: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {activeTab === 'dashboard' && <AdminDashboardTab />}
 
         {activeTab === 'students' && (
           <Card>
@@ -439,6 +450,7 @@ const AdminPanel: React.FC = () => {
                 ]}
                 data={students}
                 emptyMessage="No students found"
+                onRowClick={(item) => setSelectedStudentId(item.id)}
               />
               {studentTotal > 50 && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
@@ -504,6 +516,7 @@ const AdminPanel: React.FC = () => {
                 ]}
                 data={teachers}
                 emptyMessage="No teachers found"
+                onRowClick={(item) => setSelectedTeacherId(item.id)}
               />
             </CardBody>
 
@@ -803,6 +816,9 @@ const AdminPanel: React.FC = () => {
           </Card>
         )}
       </div>
+
+      <StudentAnalyticsDrawer studentId={selectedStudentId} onClose={() => setSelectedStudentId(null)} />
+      <TeacherAnalyticsDrawer teacherId={selectedTeacherId} onClose={() => setSelectedTeacherId(null)} />
     </Layout>
   );
 };

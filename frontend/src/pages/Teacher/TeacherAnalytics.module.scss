@@ -36,6 +36,8 @@
     &.indigo { background: rgba(99, 102, 241, 0.1); color: #818cf8; }
     &.emerald { background: rgba(16, 185, 129, 0.1); color: #34d399; }
     &.amber { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+    &.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    &.green { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
   }
 
   .statInfo {
@@ -147,4 +149,9 @@
   justify-content: center;
   padding: 3rem;
   color: #a1a1aa;
+}
+
+.highRiskRow {
+  background: rgba(239, 68, 68, 0.05);
+  border-left: 2px solid #ef4444;
 }

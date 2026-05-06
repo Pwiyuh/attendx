@@ -346,3 +346,119 @@ class ActivityItem(BaseModel):
 
 class DashboardActivityResponse(BaseModel):
     activities: List[ActivityItem]
+
+
+class AdminPerformanceOverview(BaseModel):
+    institutional_average: float
+    total_analyzed: int
+    risk_distribution: dict
+
+
+# ── Marks & Assessments ───────────────────────────────────────────
+
+class AssessmentTypeOut(BaseModel):
+    id: int
+    name: str
+    weightage: Optional[float] = None
+    
+    class Config:
+        from_attributes = True
+
+class AssessmentCreate(BaseModel):
+    subject_id: int
+    class_id: int
+    name: str
+    max_marks: float
+    date: date
+    assessment_type_id: Optional[int] = None
+
+class AssessmentOut(AssessmentCreate):
+    id: int
+    assessment_type: Optional[AssessmentTypeOut] = None
+
+    class Config:
+        from_attributes = True
+
+class StudentMarkCreate(BaseModel):
+    student_id: int
+    marks_obtained: float
+
+class BulkMarksRequest(BaseModel):
+    assessment_id: int
+    marks: List[StudentMarkCreate]
+
+class BulkMarksResponse(BaseModel):
+    success: bool
+    inserted: int
+    updated: int
+    errors: Optional[List[str]] = None
+
+class StudentMarkOut(BaseModel):
+    id: int
+    student_id: int
+    assessment_id: int
+    marks_obtained: float
+    assessment: AssessmentOut
+
+    class Config:
+        from_attributes = True
+
+class SubjectMarksResponse(BaseModel):
+    subject_id: int
+    subject_name: str
+    marks: List[StudentMarkOut]
+
+
+# ── Community Hub ──────────────────────────────────────────────────
+
+class CommunityReactionOut(BaseModel):
+    reaction_type: str
+    count: int
+    user_reacted: bool = False
+
+
+class CommunityPostCreate(BaseModel):
+    title: str = Field(..., min_length=3, max_length=200)
+    content: str = Field(..., min_length=10, max_length=5000)
+    category: str
+    visibility_scope: str
+    target_class_id: Optional[int] = None
+    target_section_id: Optional[int] = None
+    target_subject_id: Optional[int] = None
+
+
+class CommunityPostOut(BaseModel):
+    id: int
+    title: str
+    content: str
+    author_id: int
+    author_role: str
+    author_name: str
+    category: str
+    visibility_scope: str
+    target_class_id: Optional[int] = None
+    target_section_id: Optional[int] = None
+    target_subject_id: Optional[int] = None
+    is_pinned: bool
+    created_at: datetime
+    updated_at: datetime
+    edited_at: Optional[datetime] = None
+    reactions: List[CommunityReactionOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class CommunityPostFeedResponse(BaseModel):
+    posts: List[CommunityPostOut]
+    next_cursor: Optional[str] = None
+
+
+class CommunityPulseResponse(BaseModel):
+    attendance_rate: float
+    improving_students_count: int
+    at_risk_students_count: int
+    active_discussions_count: int
+    top_performing_section: Optional[str] = None
+    last_updated: datetime
+

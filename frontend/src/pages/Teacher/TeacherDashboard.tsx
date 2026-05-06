@@ -13,7 +13,7 @@ import {
   teacherCreateSubject, teacherGetClassSubjects,
 } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import { Users, UserCheck, UserX, CheckCircle2, ClipboardList, Download, Plus } from 'lucide-react';
+import { Users, UserCheck, UserX, ClipboardList, Download, Plus } from 'lucide-react';
 
 interface SectionData {
   id: number;

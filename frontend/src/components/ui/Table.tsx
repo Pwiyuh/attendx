@@ -12,6 +12,8 @@ interface TableProps<T> {
   data: T[];
   emptyMessage?: string;
   keyField?: string;
+  onRowClick?: (item: T) => void;
+  rowClassName?: (item: T) => string | undefined;
 }
 
 function Table<T extends object>({
@@ -19,6 +21,8 @@ function Table<T extends object>({
   data,
   emptyMessage = 'No data found',
   keyField = 'id',
+  onRowClick,
+  rowClassName,
 }: TableProps<T>) {
   return (
     <div className={styles.tableWrapper}>
@@ -42,7 +46,12 @@ function Table<T extends object>({
             </tr>
           ) : (
             data.map((item, index) => (
-              <tr key={String((item as Record<string, unknown>)[keyField] ?? index)}>
+              <tr 
+                key={String((item as Record<string, unknown>)[keyField] ?? index)}
+                onClick={() => onRowClick?.(item)}
+                className={rowClassName?.(item)}
+                style={{ cursor: onRowClick ? 'pointer' : 'default' }}
+              >
                 {columns.map((col) => (
                   <td key={col.key}>
                     {col.render ? col.render(item, index) : String((item as Record<string, unknown>)[col.key] ?? '')}

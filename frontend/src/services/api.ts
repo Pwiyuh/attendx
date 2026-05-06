@@ -32,7 +32,7 @@ api.interceptors.response.use(
 );
 
 // Auth
-export const loginApi = (email, password, role) =>
+export const loginApi = (email: string, password: string, role: string) =>
   api.post('/auth/login', { email, password, role });
 export const changePasswordApi = (data: unknown) => api.post('/auth/change-password', data);
 export const getMeApi = () => api.get('/auth/me');
@@ -101,7 +101,7 @@ export const updateLeaveStatus = (leaveId: number, status: 'approved' | 'rejecte
 export const withdrawLeave = (leaveId: number) =>
   api.delete(`/leave/${leaveId}`);
 
-// Admin Dashboard
+// Admin Dashboard Interfaces
 export interface DashboardOverview {
   health_score: number;
   health_status: string;
@@ -139,9 +139,115 @@ export interface DashboardActivity {
   activities: ActivityItem[];
 }
 
+export interface AdminPerformanceOverview {
+  institutional_average: number;
+  total_analyzed: number;
+  risk_distribution: {
+    Low: number;
+    Medium: number;
+    High: number;
+  };
+}
+
+// Performance Analytics
+export interface StudentPerformanceAnalytics {
+  overall_average: number;
+  subject_averages: Record<string, number>;
+  trend: string;
+  consistency: string;
+  velocity: number;
+  weak_subjects: string[];
+  attendance_percentage: number;
+  effort_vs_output: string;
+  risk_level: 'Low' | 'Medium' | 'High';
+  recommendations: string[];
+  summary: string;
+}
+
+export interface ClassPerformanceAnalytics {
+  class_average: number;
+  total_students: number;
+  high_risk_count: number;
+  declining_count: number;
+  high_risk_students: { id: number; name: string }[];
+  students: ({ student_id: number; name: string } & StudentPerformanceAnalytics)[];
+}
+
+// Community Hub
+export interface CommunityReaction {
+  reaction_type: string;
+  count: number;
+  user_reacted: boolean;
+}
+
+export interface CommunityPost {
+  id: number;
+  title: string;
+  content: string;
+  author_id: number;
+  author_role: string;
+  author_name: string;
+  category: string;
+  visibility_scope: string;
+  target_class_id?: number;
+  target_section_id?: number;
+  target_subject_id?: number;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+  edited_at?: string;
+  reactions: CommunityReaction[];
+}
+
+export interface CommunityPulse {
+  attendance_rate: number;
+  improving_students_count: number;
+  at_risk_students_count: number;
+  active_discussions_count: number;
+  top_performing_section?: string;
+  last_updated: string;
+}
+
+
+// API Methods
 export const getAdminDashboardOverview = (): Promise<{ data: DashboardOverview }> => api.get('/admin/dashboard/overview');
 export const getAdminDashboardAlerts = (): Promise<{ data: DashboardAlert[] }> => api.get('/admin/dashboard/alerts');
 export const getAdminDashboardTrends = (): Promise<{ data: DashboardTrends }> => api.get('/admin/dashboard/trends');
 export const getAdminDashboardActivity = (): Promise<{ data: DashboardActivity }> => api.get('/admin/dashboard/activity');
+export const getAdminPerformanceOverview = (): Promise<{ data: AdminPerformanceOverview }> => api.get('/admin/dashboard/performance');
+
+export const getStudentPerformance = (studentId: number): Promise<{ data: StudentPerformanceAnalytics }> => api.get(`/analytics/student/${studentId}/performance`);
+export const getStudentFullProfile = (studentId: number): Promise<{ data: any }> => api.get(`/analytics/student/${studentId}/full-profile`);
+export const getTeacherOverview = (teacherId: number): Promise<{ data: any }> => api.get(`/analytics/teacher/${teacherId}/overview`);
+export const getClassPerformance = (classId: number, sectionId: number): Promise<{ data: ClassPerformanceAnalytics }> => api.get(`/analytics/teacher/class-performance`, { params: { class_id: classId, section_id: sectionId } });
+
+export const getCommunityPosts = (params: { category?: string, scope?: string, cursor?: string }): Promise<{ data: { posts: CommunityPost[], next_cursor?: string } }> =>
+  api.get('/community/posts', { params });
+export const createCommunityPost = (data: any): Promise<{ data: CommunityPost }> =>
+  api.post('/community/posts', data);
+export const toggleCommunityReaction = (postId: number, reactionType: string) =>
+  api.post(`/community/posts/${postId}/react`, null, { params: { reaction_type: reactionType } });
+export const deleteCommunityPost = (postId: number) =>
+  api.delete(`/community/posts/${postId}`);
+export const togglePostPin = (postId: number) =>
+  api.patch(`/community/posts/${postId}/pin`);
+export const getCommunityPulse = (): Promise<{ data: CommunityPulse }> =>
+  api.get('/community/pulse');
+
+
+/**
+ * Helper to wrap API calls with error handling and consistent return format
+ * Useful for concurrent fetching where we don't want one failure to kill everything
+ */
+export const safeFetch = async <T>(apiCall: () => Promise<{ data: T }>): Promise<{ data: T | null, error: string | null }> => {
+  try {
+    const res = await apiCall();
+    return { data: res.data, error: null };
+  } catch (err: any) {
+    console.error('API Error:', err);
+    return { data: null, error: err.response?.data?.detail || err.message || 'Unknown error' };
+  }
+};
 
 export default api;
+

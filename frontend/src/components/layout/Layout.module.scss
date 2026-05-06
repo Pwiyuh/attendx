@@ -1,12 +1,18 @@
 @use '../../styles/variables' as *;
 
+// ── Sidebar widths ────────────────────────────────────────────────
+$sidebar-width: 260px;
+$sidebar-collapsed-width: 68px;
+
+// ── Layout shell ─────────────────────────────────────────────────
 .layout {
   display: flex;
   min-height: 100vh;
 }
 
+// ── Sidebar ───────────────────────────────────────────────────────
 .sidebar {
-  width: 260px;
+  width: $sidebar-width;
   background: $bg-secondary;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -18,12 +24,23 @@
   left: 0;
   bottom: 0;
   z-index: 10;
-  transition: transform $transition-slow;
+  transition: width $transition-slow;
+  overflow: hidden;
 }
 
+.sidebarCollapsed {
+  width: $sidebar-collapsed-width;
+}
+
+// ── Logo ──────────────────────────────────────────────────────────
 .logo {
   padding: $space-6;
   border-bottom: 1px solid $border-color;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
 
   h1 {
     font-size: $font-lg;
@@ -32,6 +49,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
   }
 
   .subtitle {
@@ -40,22 +58,66 @@
     margin-top: 2px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    white-space: nowrap;
   }
 }
 
+.logoIcon {
+  font-size: $font-base;
+  font-weight: $weight-bold;
+  background: linear-gradient(135deg, $accent-primary, $accent-primary-hover);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+// ── Toggle button ─────────────────────────────────────────────────
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-full;
+  background: $bg-muted;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast;
+  flex-shrink: 0;
+
+  // Position it at the right edge of the sidebar header area
+  position: absolute;
+  top: 22px;
+  right: -14px;
+  z-index: 20;
+
+  &:hover {
+    background: $accent-primary-dim;
+    border-color: $accent-primary;
+    color: $accent-primary-hover;
+    transform: scale(1.1);
+  }
+}
+
+// ── Nav ───────────────────────────────────────────────────────────
 .nav {
   flex: 1;
-  padding: $space-4;
+  padding: $space-4 $space-2;
   display: flex;
   flex-direction: column;
   gap: $space-1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .navItem {
   display: flex;
   align-items: center;
   gap: $space-3;
-  padding: $space-3 $space-4;
+  padding: $space-3 $space-3;
   border-radius: $radius-md;
   color: $text-secondary;
   font-size: $font-base;
@@ -66,6 +128,9 @@
   background: none;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
 
   &:hover {
     background: $bg-muted;
@@ -78,9 +143,26 @@
   }
 }
 
+.navIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.navLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity $transition-slow;
+}
+
+// ── User Section ──────────────────────────────────────────────────
 .userSection {
-  padding: $space-4;
+  padding: $space-3 $space-2;
   border-top: 1px solid $border-color;
+  flex-shrink: 0;
 
   .userInfo {
     display: flex;
@@ -89,6 +171,13 @@
     padding: $space-3;
     border-radius: $radius-md;
     margin-bottom: $space-2;
+    overflow: hidden;
+  }
+
+  .userInfoCollapsed {
+    justify-content: center;
+    padding: $space-2;
+    cursor: default;
   }
 
   .avatar {
@@ -109,22 +198,59 @@
     font-size: $font-sm;
     font-weight: $weight-medium;
     color: $text-primary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .userRole {
     font-size: $font-xs;
     color: $text-muted;
     text-transform: capitalize;
+    white-space: nowrap;
   }
 }
 
-.main {
-  flex: 1;
-  margin-left: 260px;
+// ── Logout button ─────────────────────────────────────────────────
+.logoutBtn {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  width: 100%;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  border: none;
+  background: none;
+  color: $text-secondary;
+  font-size: $font-sm;
+  font-weight: $weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    background: $accent-danger-dim;
+    color: $accent-danger;
+  }
 }
 
+// ── Main content ──────────────────────────────────────────────────
+.main {
+  flex: 1;
+  margin-left: $sidebar-width;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left $transition-slow;
+  min-width: 0;
+}
+
+.layoutCollapsed .main {
+  margin-left: $sidebar-collapsed-width;
+}
+
+// ── Top Bar ───────────────────────────────────────────────────────
 .topBar {
   height: 64px;
   border-bottom: 1px solid $border-color;
@@ -150,6 +276,7 @@
   }
 }
 
+// ── Page Content ──────────────────────────────────────────────────
 .content {
   flex: 1;
   padding: $space-8;

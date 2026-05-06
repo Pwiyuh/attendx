@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Date, DateTime, Text, Enum, ForeignKey,
-    UniqueConstraint, Index, JSON, Boolean,
+    UniqueConstraint, Index, JSON, Boolean, Float
 )
 from sqlalchemy import event
 from sqlalchemy.orm import relationship
@@ -25,6 +25,29 @@ class LeaveStatus(str, enum.Enum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
+
+
+class PostCategory(str, enum.Enum):
+    announcement = "announcement"
+    academic = "academic"
+    discussion = "discussion"
+    achievement = "achievement"
+    event = "event"
+    reminder = "reminder"
+    institutional_update = "institutional_update"
+
+
+class VisibilityScope(str, enum.Enum):
+    global_scope = "global"
+    class_scope = "class"
+    section_scope = "section"
+    subject_scope = "subject"
+
+
+class ModerationStatus(str, enum.Enum):
+    approved = "approved"
+    pending = "pending"
+    flagged = "flagged"
 
 
 # ── Academic Entities ──────────────────────────────────────────────
@@ -240,3 +263,123 @@ class SchoolSettings(Base):
     logo_url = Column(String(500), nullable=True)
     setup_completed = Column(Boolean, default=False, nullable=False)
 
+
+# ── Performance & Marks ────────────────────────────────────────────
+
+class AssessmentType(Base):
+    __tablename__ = "assessment_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    weightage = Column(Float, nullable=True)  # Example: 20 for 20%
+
+
+class Assessment(Base):
+    __tablename__ = "assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False) # e.g. "Unit Test 1"
+    max_marks = Column(Float, nullable=False)
+    date = Column(Date, nullable=False)
+    assessment_type_id = Column(Integer, ForeignKey("assessment_types.id", ondelete="SET NULL"), nullable=True)
+
+    subject = relationship("Subject", lazy="selectin")
+    class_ = relationship("Class", lazy="selectin")
+    assessment_type = relationship("AssessmentType", lazy="selectin")
+    marks = relationship("StudentMark", back_populates="assessment", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_assessments_subject_class", "subject_id", "class_id"),
+        Index("ix_assessments_date", "date"),
+    )
+
+
+class StudentMark(Base):
+    __tablename__ = "student_marks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    assessment_id = Column(Integer, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
+    marks_obtained = Column(Float, nullable=False)
+
+    student = relationship("Student", lazy="selectin")
+    assessment = relationship("Assessment", back_populates="marks")
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "assessment_id", name="uq_student_assessment"),
+        Index("ix_student_marks_student_id", "student_id"),
+        Index("ix_student_marks_assessment_id", "assessment_id"),
+    )
+
+
+class PerformanceConfig(Base):
+    """Configuration for performance analytics thresholds and rules."""
+    __tablename__ = "performance_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Marks thresholds
+    high_performance_threshold = Column(Float, nullable=False, default=75.0)
+    low_performance_threshold = Column(Float, nullable=False, default=40.0)
+    # Attendance thresholds
+    high_attendance_threshold = Column(Float, nullable=False, default=80.0)
+    low_attendance_threshold = Column(Float, nullable=False, default=60.0)
+    # Trend settings
+    trend_window_assessments = Column(Integer, nullable=False, default=3) # Number of recent assessments for trend
+    
+    # Singleton pattern enforcement
+    is_active = Column(Boolean, nullable=False, default=True)
+
+
+# ── Community Hub ──────────────────────────────────────────────────
+
+class CommunityPost(Base):
+    __tablename__ = "community_posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+    
+    author_id = Column(Integer, nullable=False)
+    author_role = Column(Enum(UserRole), nullable=False)
+    author_name_cache = Column(String(200), nullable=True) # Cached for performance
+    
+    category = Column(Enum(PostCategory), nullable=False, index=True)
+    visibility_scope = Column(Enum(VisibilityScope), nullable=False, index=True)
+    
+    target_class_id = Column(Integer, ForeignKey("classes.id", ondelete="SET NULL"), nullable=True)
+    target_section_id = Column(Integer, ForeignKey("sections.id", ondelete="SET NULL"), nullable=True)
+    target_subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="SET NULL"), nullable=True)
+    
+    is_pinned = Column(Boolean, default=False, index=True)
+    moderation_status = Column(Enum(ModerationStatus), default=ModerationStatus.approved, index=True)
+    is_deleted = Column(Boolean, default=False, index=True)
+    
+    created_at = Column(DateTime, default=lambda: datetime.utcnow())
+    updated_at = Column(DateTime, default=lambda: datetime.utcnow(), onupdate=lambda: datetime.utcnow())
+    edited_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, nullable=True) # User ID who deleted it
+    
+    reactions = relationship("CommunityReaction", back_populates="post", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_community_posts_scope_targets", "visibility_scope", "target_class_id", "target_section_id", "target_subject_id"),
+    )
+
+
+class CommunityReaction(Base):
+    __tablename__ = "community_reactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("community_posts.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, nullable=False)
+    user_role = Column(Enum(UserRole), nullable=False)
+    reaction_type = Column(String(20), nullable=False) # emoji: 👍, ❤️, 🎉
+
+    post = relationship("CommunityPost", back_populates="reactions")
+
+    __table_args__ = (
+        UniqueConstraint("post_id", "user_id", "user_role", name="uq_post_user_reaction"),
+    )

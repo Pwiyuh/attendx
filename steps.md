@@ -18,3 +18,5 @@ teacher123
 priya@college.edu
 teacher123
 
+
+i must connect student analytics to the teacher view

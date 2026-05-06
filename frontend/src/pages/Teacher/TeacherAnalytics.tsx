@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { Users, Activity, CheckCircle2, Search, Download } from 'lucide-react';
-import { getClasses, getSubjects, teacherGetClassSubjects, getTeacherClassAnalytics } from '../../services/api';
+import { Users, Activity, CheckCircle2, Search, Download, TrendingUp, TrendingDown, Minus, AlertCircle, AlertTriangle } from 'lucide-react';
+import { getClasses, getSubjects, teacherGetClassSubjects, getTeacherClassAnalytics, getClassPerformance } from '../../services/api';
+import type { ClassPerformanceAnalytics, StudentPerformanceAnalytics } from '../../services/api';
 import Layout from '../../components/layout/Layout';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -65,6 +66,12 @@ const TeacherAnalytics: React.FC = () => {
 
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  const [viewMode, setViewMode] = useState<'attendance' | 'performance'>('attendance');
+  const [perfData, setPerfData] = useState<ClassPerformanceAnalytics | null>(null);
+  const [perfLoading, setPerfLoading] = useState(false);
+  const [perfFilter, setPerfFilter] = useState<'all' | 'high_risk' | 'declining' | 'learning_gap'>('all');
+  
   const [searchQuery, setSearchQuery] = useState('');
 
   const { showToast } = useToast();
@@ -122,9 +129,28 @@ const TeacherAnalytics: React.FC = () => {
     }
   }, [selectedClass, selectedSection, selectedSubject, startDate, endDate, showToast]);
 
+  const loadPerformance = useCallback(async () => {
+    if (!selectedClass || !selectedSection) return;
+    
+    setPerfLoading(true);
+    try {
+      const res = await getClassPerformance(Number(selectedClass), Number(selectedSection));
+      setPerfData(res.data);
+    } catch (error) {
+      showToast('error', 'Failed to load academic performance data');
+      setPerfData(null);
+    } finally {
+      setPerfLoading(false);
+    }
+  }, [selectedClass, selectedSection, showToast]);
+
   useEffect(() => {
-    void loadAnalytics();
-  }, [loadAnalytics]);
+    if (viewMode === 'attendance') {
+      void loadAnalytics();
+    } else {
+      void loadPerformance();
+    }
+  }, [viewMode, loadAnalytics, loadPerformance]);
 
   const getStatusColorClass = (percentage: number) => {
     if (percentage < 75) return 'Critical';
@@ -143,6 +169,26 @@ const TeacherAnalytics: React.FC = () => {
     students.sort((a, b) => a.percentage - b.percentage);
     return students;
   }, [analyticsData, searchQuery]);
+
+  const filteredPerformanceStudents = useMemo(() => {
+    if (!perfData) return [];
+    let students = [...perfData.students];
+    
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      students = students.filter((s) => s.name.toLowerCase().includes(lowerQuery));
+    }
+    
+    if (perfFilter === 'high_risk') {
+      students = students.filter(s => s.risk_level === 'High');
+    } else if (perfFilter === 'declining') {
+      students = students.filter(s => s.trend === 'declining');
+    } else if (perfFilter === 'learning_gap') {
+      students = students.filter(s => s.effort_vs_output === 'Learning Gap');
+    }
+    
+    return students;
+  }, [perfData, searchQuery, perfFilter]);
 
   const handleExportCSV = () => {
     if (!analyticsData) return;
@@ -189,6 +235,51 @@ const TeacherAnalytics: React.FC = () => {
         );
       },
     },
+  ];
+
+  const perfColumns = [
+    { key: 'name', header: 'Student Name' },
+    { 
+      key: 'overall_average', 
+      header: 'Overall Avg',
+      render: (item: StudentPerformanceAnalytics) => <span style={{ fontWeight: 600 }}>{item.overall_average}%</span>
+    },
+    {
+      key: 'trend',
+      header: 'Trend',
+      render: (item: StudentPerformanceAnalytics) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: item.trend === 'improving' ? '#34d399' : item.trend === 'declining' ? '#ef4444' : '#a1a1aa' }}>
+          {item.trend === 'improving' ? <TrendingUp size={14} /> : item.trend === 'declining' ? <TrendingDown size={14} /> : <Minus size={14} />}
+          <span style={{ textTransform: 'capitalize' }}>{item.trend} {item.velocity ? `(${item.velocity > 0 ? '+' : ''}${item.velocity})` : ''}</span>
+        </div>
+      )
+    },
+    {
+      key: 'risk_level',
+      header: 'Risk Level',
+      render: (item: StudentPerformanceAnalytics) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: item.risk_level === 'High' ? '#ef4444' : item.risk_level === 'Medium' ? '#eab308' : '#34d399' }}>
+          {item.risk_level === 'High' ? <AlertCircle size={14} /> : item.risk_level === 'Medium' ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+          <span>{item.risk_level}</span>
+        </div>
+      )
+    },
+    {
+      key: 'effort_vs_output',
+      header: 'Effort vs Output',
+      render: (item: StudentPerformanceAnalytics) => (
+        <span style={{ 
+          padding: '2px 8px', 
+          borderRadius: '12px', 
+          fontSize: '0.75rem', 
+          backgroundColor: '#27272a',
+          color: item.effort_vs_output === 'High Risk' ? '#ef4444' : item.effort_vs_output === 'Strong Performer' ? '#34d399' : '#a1a1aa',
+          whiteSpace: 'nowrap'
+        }}>
+          {item.effort_vs_output}
+        </span>
+      )
+    }
   ];
 
   return (
@@ -247,11 +338,29 @@ const TeacherAnalytics: React.FC = () => {
           </CardBody>
         </Card>
 
-        {loading && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <Button 
+            variant={viewMode === 'attendance' ? 'primary' : 'outline'} 
+            onClick={() => setViewMode('attendance')}
+          >
+            Attendance Analytics
+          </Button>
+          <Button 
+            variant={viewMode === 'performance' ? 'primary' : 'outline'} 
+            onClick={() => setViewMode('performance')}
+          >
+            Academic Performance
+          </Button>
+        </div>
+
+        {viewMode === 'attendance' && loading && (
           <div className={styles.flexCenter}>Loading analytics data...</div>
         )}
+        {viewMode === 'performance' && perfLoading && (
+          <div className={styles.flexCenter}>Loading performance data...</div>
+        )}
 
-        {!loading && analyticsData && (
+        {viewMode === 'attendance' && !loading && analyticsData && (
           <>
             <div className={styles.statsRow}>
               <div className={styles.statCard}>
@@ -304,12 +413,13 @@ const TeacherAnalytics: React.FC = () => {
             <Card>
               <CardHeader title="Student Progress">
                 <div className={styles.toolbar} style={{ marginTop: 16 }}>
-                  <div className={styles.searchBox}>
+                  <div className={styles.searchBox} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search size={18} style={{ position: 'absolute', left: 10, color: '#71717a', pointerEvents: 'none' }} />
                     <Input
                       placeholder="Search by student name..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      icon={<Search size={18} />}
+                      style={{ paddingLeft: 36 }}
                     />
                   </div>
                   <Button variant="secondary" onClick={handleExportCSV}>
@@ -322,6 +432,72 @@ const TeacherAnalytics: React.FC = () => {
                   columns={columns} 
                   data={filteredStudents} 
                   emptyMessage="No student data available." 
+                />
+              </CardBody>
+            </Card>
+          </>
+        )}
+
+        {viewMode === 'performance' && !perfLoading && perfData && (
+          <>
+            <div className={styles.statsRow}>
+              <div className={styles.statCard}>
+                <div className={`${styles.statIcon} ${styles.indigo}`}><Activity size={22} /></div>
+                <div className={styles.statInfo}>
+                  <div className={styles.statValue}>{perfData.class_average}%</div>
+                  <div className={styles.statLabel}>Class Average</div>
+                </div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={`${styles.statIcon} ${perfData.high_risk_count > 0 ? styles.red : styles.green}`}><AlertCircle size={22} /></div>
+                <div className={styles.statInfo}>
+                  <div className={styles.statValue}>{perfData.high_risk_count}</div>
+                  <div className={styles.statLabel}>High Risk Students</div>
+                </div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={`${styles.statIcon} ${perfData.declining_count > 0 ? styles.amber : styles.indigo}`}><TrendingDown size={22} /></div>
+                <div className={styles.statInfo}>
+                  <div className={styles.statValue}>{perfData.declining_count}</div>
+                  <div className={styles.statLabel}>Declining Students</div>
+                </div>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader title="Student Performance Insights">
+                <div className={styles.toolbar} style={{ marginTop: 16 }}>
+                  <div className={styles.searchBox} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search size={18} style={{ position: 'absolute', left: 10, color: '#71717a', pointerEvents: 'none' }} />
+                    <Input
+                      placeholder="Search by student name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ paddingLeft: 36 }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Select
+                      id="perf-filter"
+                      value={perfFilter}
+                      onChange={(e) => setPerfFilter(e.target.value as any)}
+                      options={[
+                        { value: 'all', label: 'All Students' },
+                        { value: 'high_risk', label: 'High Risk Only' },
+                        { value: 'declining', label: 'Declining Only' },
+                        { value: 'learning_gap', label: 'Learning Gap Only' }
+                      ]}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <Table<any> 
+                  columns={perfColumns} 
+                  data={filteredPerformanceStudents} 
+                  emptyMessage="No performance data available." 
+                  onRowClick={(item) => showToast('info', `Details for ${item.name} coming soon!`)}
+                  rowClassName={(item) => item.risk_level === 'High' ? styles.highRiskRow : undefined}
                 />
               </CardBody>
             </Card>

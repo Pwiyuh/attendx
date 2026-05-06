@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routes import auth, teacher, student, admin, onboarding, leave
+from app.routes import auth, teacher, student, admin, onboarding, leave, marks, performance, analytics, community
 
 
 @asynccontextmanager
@@ -37,6 +37,10 @@ app.include_router(student.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(onboarding.router, prefix="/api")
 app.include_router(leave.router, prefix="/api")
+app.include_router(marks.router, prefix="/api")
+app.include_router(performance.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
+app.include_router(community.router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 import GlassCard from '../../components/ui/GlassCard';
 import { Building, User, Lock, Mail, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -11,7 +10,6 @@ const Onboarding: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({

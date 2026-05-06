@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Layout.module.scss';
 import classNames from 'classnames';
 import { useAuth } from '../../context/AuthContext';
-import Button from '../ui/Button';
+// Button import removed — Layout uses native <button> elements
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap, ClipboardList,
-  LogOut, Settings, User, PieChart, CalendarClock
+  LogOut, Settings, User, PieChart, CalendarClock, ChevronLeft, Menu, MessageSquare
 } from 'lucide-react';
 
 interface NavItem {
@@ -20,16 +20,19 @@ const navConfig: Record<string, NavItem[]> = {
     { label: 'Dashboard', path: '/teacher', icon: <LayoutDashboard size={18} /> },
     { label: 'Analysis Board', path: '/teacher/analytics', icon: <PieChart size={18} /> },
     { label: 'Mark Attendance', path: '/teacher/attendance', icon: <ClipboardList size={18} /> },
+    { label: 'Community Hub', path: '/community', icon: <MessageSquare size={18} /> },
     { label: 'Leave Requests', path: '/leave', icon: <CalendarClock size={18} /> },
     { label: 'Profile Settings', path: '/profile', icon: <User size={18} /> },
   ],
   student: [
     { label: 'My Attendance', path: '/student', icon: <LayoutDashboard size={18} /> },
+    { label: 'Community Hub', path: '/community', icon: <MessageSquare size={18} /> },
     { label: 'Leave Requests', path: '/leave', icon: <CalendarClock size={18} /> },
     { label: 'Profile Settings', path: '/profile', icon: <User size={18} /> },
   ],
   admin: [
     { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={18} /> },
+    { label: 'Community Hub', path: '/community', icon: <MessageSquare size={18} /> },
     { label: 'Students', path: '/admin/students', icon: <GraduationCap size={18} /> },
     { label: 'Teachers', path: '/admin/teachers', icon: <Users size={18} /> },
     { label: 'Subjects', path: '/admin/subjects', icon: <BookOpen size={18} /> },
@@ -48,6 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
 
   const role = user?.role || 'student';
   const items = navConfig[role] || [];
@@ -62,38 +66,70 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   };
 
   return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar}>
+    <div className={classNames(styles.layout, collapsed && styles.layoutCollapsed)}>
+      <aside className={classNames(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
+        {/* Logo */}
         <div className={styles.logo}>
-          <h1>AttendX</h1>
-          <div className={styles.subtitle}>Attendance System</div>
+          {!collapsed && (
+            <>
+              <h1>AttendX</h1>
+              <div className={styles.subtitle}>Attendance System</div>
+            </>
+          )}
+          {collapsed && <span className={styles.logoIcon}>AX</span>}
         </div>
 
+        {/* Toggle Button */}
+        <button
+          className={styles.toggleBtn}
+          onClick={() => setCollapsed(c => !c)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <Menu size={16} /> : <ChevronLeft size={16} />}
+        </button>
+
+        {/* Nav */}
         <nav className={styles.nav}>
           {items.map((item) => (
             <button
               key={item.path}
               className={classNames(styles.navItem, location.pathname === item.path && styles.active)}
               onClick={() => navigate(item.path)}
+              title={collapsed ? item.label : undefined}
+              aria-label={item.label}
             >
-              {item.icon}
-              {item.label}
+              <span className={styles.navIcon}>{item.icon}</span>
+              {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
             </button>
           ))}
         </nav>
 
+        {/* User Section */}
         <div className={styles.userSection}>
-          <div className={styles.userInfo}>
-            <div className={styles.avatar}>{getInitials(user?.name || 'U')}</div>
-            <div>
-              <div className={styles.userName}>{user?.name}</div>
-              <div className={styles.userRole}>{user?.role}</div>
+          {!collapsed && (
+            <div className={styles.userInfo}>
+              <div className={styles.avatar}>{getInitials(user?.name || 'U')}</div>
+              <div>
+                <div className={styles.userName}>{user?.name}</div>
+                <div className={styles.userRole}>{user?.role}</div>
+              </div>
             </div>
-          </div>
-          <Button variant="ghost" size="sm" fullWidth onClick={handleLogout}>
+          )}
+          {collapsed && (
+            <div className={classNames(styles.userInfo, styles.userInfoCollapsed)} title={user?.name}>
+              <div className={styles.avatar}>{getInitials(user?.name || 'U')}</div>
+            </div>
+          )}
+          <button
+            className={styles.logoutBtn}
+            onClick={handleLogout}
+            title={collapsed ? 'Sign Out' : undefined}
+            aria-label="Sign Out"
+          >
             <LogOut size={16} />
-            Sign Out
-          </Button>
+            {!collapsed && <span>Sign Out</span>}
+          </button>
         </div>
       </aside>
 

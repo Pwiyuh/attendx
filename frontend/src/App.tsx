@@ -11,7 +11,8 @@ import ProfilePage from './pages/Profile/ProfilePage';
 import LandingPage from './pages/Landing/LandingPage';
 import Onboarding from './pages/Onboarding/Onboarding';
 import LeaveManagement from './pages/Shared/LeaveManagement';
-import AdminDashboardDebug from './pages/Admin/AdminDashboardDebug';
+import CommunityHub from './pages/Shared/CommunityHub';
+// import AdminDashboardDebug from './pages/Admin/AdminDashboardDebug';
 import GalaxyBackground from './components/ui/GalaxyBackground';
 import api from './services/api';
 
@@ -54,106 +55,76 @@ const AuthRedirect: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
+    <BrowserRouter>
       <AuthProvider>
-        <div 
-          className="relative min-h-screen text-text-primary selection:bg-galaxy-purple selection:text-white font-sans overflow-x-hidden"
-          style={{ background: '#020617' }}
-        >
-          {/* Global Immersive Galaxy Background */}
-          <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-            <GalaxyBackground intensity={0.9} speed={1} />
-          </div>
-          
-          <div className="relative z-10 min-h-screen">
-            <BrowserRouter>
+        <ToastProvider>
+          <GalaxyBackground />
           <Routes>
+            <Route path="/" element={<AuthRedirect />} />
+            <Route path="/get-started" element={<GetStartedRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/get-started" element={<GetStartedRedirect />} />
-            <Route path="/" element={<AuthRedirect />} />
-
-            {/* Teacher Routes */}
-            <Route path="/teacher" element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <TeacherDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/teacher/attendance" element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <TeacherDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/teacher/analytics" element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <TeacherAnalytics />
-              </ProtectedRoute>
-            } />
-
-            {/* Student Routes */}
-            <Route path="/student" element={
-              <ProtectedRoute allowedRoles={['student']}>
-                <StudentDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Admin Routes */}
-            <Route path="/admin" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/debug" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboardDebug />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/students" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/teachers" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/subjects" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/classes" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/attendance" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <TeacherDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Shared Routes */}
-            <Route path="/profile" element={
-              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                <ProfilePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/leave" element={
-              <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                <LeaveManagement />
-              </ProtectedRoute>
-            } />
-
-            {/* Catch all */}
+            <Route
+              path="/teacher"
+              element={
+                <ProtectedRoute allowedRoles={['teacher']}>
+                  <TeacherDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/analytics"
+              element={
+                <ProtectedRoute allowedRoles={['teacher']}>
+                  <TeacherAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student"
+              element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leave"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                  <LeaveManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/community"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'teacher', 'student']}>
+                  <CommunityHub />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </BrowserRouter>
-          </div>
-        </div>
+        </ToastProvider>
       </AuthProvider>
-    </ToastProvider>
+    </BrowserRouter>
   );
 };
 

@@ -11,7 +11,8 @@ from app.schemas.schemas import (
     StudentCreate, TeacherCreate,
     ClassOut, SectionOut, SubjectOut, StudentOut, TeacherOut,
     PaginatedStudents, DeleteConfirmRequest, DeleteResponse,
-    DashboardOverviewResponse, DashboardAlert, DashboardTrendsResponse, DashboardActivityResponse
+    DashboardOverviewResponse, DashboardAlert, DashboardTrendsResponse, DashboardActivityResponse,
+    AdminPerformanceOverview as AdminPerformanceOverviewSchema
 )
 from app.services.admin_service import AdminAnalyticsService
 from app.services.service import (
@@ -250,7 +251,7 @@ async def get_dashboard_overview(
     return await AdminAnalyticsService.get_dashboard_overview(db)
 
 
-@router.get("/dashboard/alerts", response_model=List[DashboardAlert])
+@router.get("/dashboard/alerts", response_model=list[DashboardAlert])
 async def get_dashboard_alerts(
     _user: dict = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
@@ -274,3 +275,11 @@ async def get_dashboard_activity(
 ):
     activities = await AdminAnalyticsService.get_activity(db)
     return DashboardActivityResponse(activities=activities)
+
+
+@router.get("/dashboard/performance", response_model=AdminPerformanceOverviewSchema)
+async def get_dashboard_performance(
+    _user: dict = Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await AdminAnalyticsService.get_performance_overview(db)

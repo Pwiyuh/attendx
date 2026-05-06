@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
-import Card from '../../components/ui/Card';
+// Card import removed (unused named import caused TS6133)
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Layout from '../../components/layout/Layout';
@@ -73,12 +73,12 @@ const ProfilePage: React.FC = () => {
             {user?.role === 'student' ? (
               <div className={styles.infoItem}>
                 <label>Register Number</label>
-                <span>{user?.email}</span> {/* student email field contains reg_number */}
+                <span>{(user as any)?.email}</span> {/* student email field contains reg_number */}
               </div>
             ) : (
               <div className={styles.infoItem}>
                 <label>Email Address</label>
-                <span>{user?.email}</span>
+                <span>{(user as any)?.email}</span>
               </div>
             )}
           </div>
