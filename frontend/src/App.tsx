@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login/Login';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import TeacherAnalytics from './pages/Teacher/TeacherAnalytics';
+import TeacherMarks from './pages/Teacher/TeacherMarks';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import AdminPanel from './pages/Admin/AdminPanel';
 import ProfilePage from './pages/Profile/ProfilePage';
@@ -77,6 +78,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['teacher']}>
                   <TeacherAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/marks"
+              element={
+                <ProtectedRoute allowedRoles={['teacher']}>
+                  <TeacherMarks />
                 </ProtectedRoute>
               }
             />

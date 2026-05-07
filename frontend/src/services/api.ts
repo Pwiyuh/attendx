@@ -101,6 +101,17 @@ export const updateLeaveStatus = (leaveId: number, status: 'approved' | 'rejecte
 export const withdrawLeave = (leaveId: number) =>
   api.delete(`/leave/${leaveId}`);
 
+// Marks Management
+export const getAssessmentTypes = () => api.get('/marks/assessment-types');
+export const getAssessments = (params: { class_id?: number, subject_id?: number, status?: string }) =>
+  api.get('/marks/assessments', { params });
+export const createAssessment = (data: unknown) => api.post('/marks/assessments', data);
+export const updateAssessmentStatus = (assessmentId: number, status: string) =>
+  api.patch(`/marks/assessments/${assessmentId}/status`, status, { headers: { 'Content-Type': 'application/json' } });
+export const getAssessmentMarks = (assessmentId: number) => api.get(`/marks/assessments/${assessmentId}/marks`);
+export const submitBulkMarks = (data: unknown) => api.post('/marks/bulk', data);
+export const getStudentMarks = (studentId: number) => api.get(`/marks/student/${studentId}`);
+
 // Admin Dashboard Interfaces
 export interface DashboardOverview {
   health_score: number;

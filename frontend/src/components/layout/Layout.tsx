@@ -20,6 +20,7 @@ const navConfig: Record<string, NavItem[]> = {
     { label: 'Dashboard', path: '/teacher', icon: <LayoutDashboard size={18} /> },
     { label: 'Analysis Board', path: '/teacher/analytics', icon: <PieChart size={18} /> },
     { label: 'Mark Attendance', path: '/teacher/attendance', icon: <ClipboardList size={18} /> },
+    { label: 'Academic Performance', path: '/teacher/marks', icon: <BookOpen size={18} /> },
     { label: 'Community Hub', path: '/community', icon: <MessageSquare size={18} /> },
     { label: 'Leave Requests', path: '/leave', icon: <CalendarClock size={18} /> },
     { label: 'Profile Settings', path: '/profile', icon: <User size={18} /> },

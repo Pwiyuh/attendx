@@ -364,6 +364,17 @@ class AssessmentTypeOut(BaseModel):
     class Config:
         from_attributes = True
 
+class AssessmentStatusEnum(str, Enum):
+    draft = "draft"
+    published = "published"
+    locked = "locked"
+
+class MarkStatusEnum(str, Enum):
+    submitted = "submitted"
+    absent = "absent"
+    exempt = "exempt"
+    not_submitted = "not_submitted"
+
 class AssessmentCreate(BaseModel):
     subject_id: int
     class_id: int
@@ -371,6 +382,7 @@ class AssessmentCreate(BaseModel):
     max_marks: float
     date: date
     assessment_type_id: Optional[int] = None
+    status: Optional[AssessmentStatusEnum] = AssessmentStatusEnum.draft
 
 class AssessmentOut(AssessmentCreate):
     id: int
@@ -381,7 +393,8 @@ class AssessmentOut(AssessmentCreate):
 
 class StudentMarkCreate(BaseModel):
     student_id: int
-    marks_obtained: float
+    marks_obtained: Optional[float] = None
+    status: MarkStatusEnum = MarkStatusEnum.submitted
 
 class BulkMarksRequest(BaseModel):
     assessment_id: int
@@ -397,7 +410,8 @@ class StudentMarkOut(BaseModel):
     id: int
     student_id: int
     assessment_id: int
-    marks_obtained: float
+    marks_obtained: Optional[float] = None
+    status: MarkStatusEnum
     assessment: AssessmentOut
 
     class Config:

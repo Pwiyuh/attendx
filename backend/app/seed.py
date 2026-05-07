@@ -6,13 +6,20 @@ import asyncio
 from datetime import date, timedelta
 import random
 
-from app.database import async_session, init_db
-from app.models.models import Class, Section, Subject, Teacher, Student, Attendance, AttendanceStatus
+from app.database import async_session, engine, Base
+from app.models.models import Class, Section, Subject, Teacher, Student, Attendance, AttendanceStatus, AssessmentType
 from app.utils.auth import hash_password
 
 
+async def init_db(drop_all: bool = False):
+    async with engine.begin() as conn:
+        if drop_all:
+            await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+
 async def seed():
-    await init_db()
+    await init_db(drop_all=True)
 
     async with async_session() as db:
         # ── Branches × Years (Classes) ───────────────────────
@@ -57,6 +64,20 @@ async def seed():
             subj = Subject(name=name)
             db.add(subj)
             subjects.append(subj)
+        await db.flush()
+
+        # ── Assessment Types ──────────────────────────────────
+        assessment_types_data = [
+            ("Unit Test 1", 10),
+            ("Unit Test 2", 10),
+            ("Midterm", 30),
+            ("Final Exam", 50),
+            ("Assignment", 5),
+            ("Quiz", 5),
+        ]
+        for name, weightage in assessment_types_data:
+            at = AssessmentType(name=name, weightage=weightage)
+            db.add(at)
         await db.flush()
 
         # ── Admin Teacher ────────────────────────────────────

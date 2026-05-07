@@ -2,6 +2,7 @@ import math
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import and_
 from app.models.models import StudentMark, Assessment, Attendance, AttendanceStatus, PerformanceConfig, Subject
 
 def calculate_trend(percentages: List[float]) -> str:
@@ -44,19 +45,41 @@ async def generate_student_analytics(db: AsyncSession, student_id: int) -> Dict[
     if not config:
         config = PerformanceConfig()
 
-    # Fetch marks and subjects
-    marks_query = select(StudentMark, Assessment, Subject).join(Assessment, StudentMark.assessment_id == Assessment.id).join(Subject, Assessment.subject_id == Subject.id).where(StudentMark.student_id == student_id).order_by(Assessment.date)
+    # Fetch marks and subjects - ONLY PUBLISHED OR LOCKED
+    from app.models.models import AssessmentStatus, MarkStatus
+    marks_query = select(StudentMark, Assessment, Subject).join(
+        Assessment, StudentMark.assessment_id == Assessment.id
+    ).join(
+        Subject, Assessment.subject_id == Subject.id
+    ).where(
+        and_(
+            StudentMark.student_id == student_id,
+            Assessment.status.in_([AssessmentStatus.published, AssessmentStatus.locked])
+        )
+    ).order_by(Assessment.date)
+    
     marks_result = await db.execute(marks_query)
     records = marks_result.all()
 
     if not records:
-        return {"error": "No marks data available."}
+        return {"error": "No published marks data available."}
 
     subject_marks: Dict[str, List[float]] = {}
     overall_percentages = []
 
     for mark, assessment, subject in records:
-        pct = (mark.marks_obtained / assessment.max_marks) * 100
+        # Handle special statuses
+        if mark.status == MarkStatus.exempt:
+            continue
+            
+        score = mark.marks_obtained
+        if mark.status == MarkStatus.absent or mark.status == MarkStatus.not_submitted:
+            score = 0.0
+            
+        if score is None:
+            score = 0.0
+
+        pct = (score / assessment.max_marks) * 100
         overall_percentages.append(pct)
         if subject.name not in subject_marks:
             subject_marks[subject.name] = []

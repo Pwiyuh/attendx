@@ -1,0 +1,251 @@
+@use '../../styles/variables' as v;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 3rem;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.assessmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.assessmentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.assessmentCard {
+  background: v.$bg-card;
+  border: 1px solid v.$border-color;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: v.$accent-primary;
+    transform: translateY(-2px);
+    box-shadow: v.$shadow-lg;
+  }
+
+  &.active {
+    border-color: v.$accent-primary;
+    background: v.$bg-muted;
+    box-shadow: inset 0 0 0 1px v.$accent-primary;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  font-weight: 600;
+  color: v.$text-primary;
+  font-size: 1rem;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+
+  &.draft { background: rgba(v.$text-muted, 0.1); color: v.$text-muted; border: 1px solid rgba(v.$text-muted, 0.2); }
+  &.published { background: rgba(v.$accent-success, 0.1); color: v.$accent-success; border: 1px solid rgba(v.$accent-success, 0.2); }
+  &.locked { background: rgba(v.$accent-danger, 0.1); color: v.$accent-danger; border: 1px solid rgba(v.$accent-danger, 0.2); }
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: v.$text-secondary;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// Spreadsheet Grid
+.gridContainer {
+  background: rgba(17, 17, 19, 0.95);
+  border: 1px solid v.$border-color;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.marksTable {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th, td {
+    border: 1px solid v.$border-color;
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  th {
+    background: rgba(24, 24, 27, 0.8);
+    font-weight: 600;
+    color: v.$text-secondary;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  tr:hover td {
+    background: rgba(v.$accent-primary, 0.02);
+  }
+}
+
+.markInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: v.$text-primary;
+  font-size: 0.875rem;
+  padding: 0.25rem;
+  border-radius: 4px;
+  outline: none;
+
+  &:focus {
+    background: rgba(v.$accent-primary, 0.1);
+    box-shadow: 0 0 0 2px v.$accent-primary;
+  }
+
+  &.error {
+    color: v.$accent-danger;
+  }
+}
+
+.statusSelect {
+  background: v.$bg-card;
+  border: 1px solid v.$border-color;
+  color: v.$text-secondary;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  outline: none;
+
+  &:focus {
+    border-color: v.$accent-primary;
+  }
+}
+
+// Analytics Cards
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.statCard {
+  background: v.$bg-card;
+  border: 1px solid v.$border-color;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.statIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.indigo { background: rgba(v.$accent-primary, 0.1); color: v.$accent-primary; }
+  &.green { background: rgba(v.$accent-success, 0.1); color: v.$accent-success; }
+  &.red { background: rgba(v.$accent-danger, 0.1); color: v.$accent-danger; }
+  &.amber { background: rgba(v.$accent-warning, 0.1); color: v.$accent-warning; }
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: v.$text-primary;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.8125rem;
+  color: v.$text-muted;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.toolbarLeft {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.unsavedBanner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(234, 179, 8, 0.2);
+  color: v.$accent-warning;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: v.$text-muted;
+
+  svg {
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+  }
+
+  h3 {
+    color: v.$text-primary;
+    margin-bottom: 0.5rem;
+  }
+}

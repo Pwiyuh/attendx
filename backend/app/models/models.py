@@ -50,6 +50,19 @@ class ModerationStatus(str, enum.Enum):
     flagged = "flagged"
 
 
+class AssessmentStatus(str, enum.Enum):
+    draft = "draft"
+    published = "published"
+    locked = "locked"
+
+
+class MarkStatus(str, enum.Enum):
+    submitted = "submitted"
+    absent = "absent"
+    exempt = "exempt"
+    not_submitted = "not_submitted"
+
+
 # ── Academic Entities ──────────────────────────────────────────────
 
 class Class(Base):
@@ -284,6 +297,8 @@ class Assessment(Base):
     max_marks = Column(Float, nullable=False)
     date = Column(Date, nullable=False)
     assessment_type_id = Column(Integer, ForeignKey("assessment_types.id", ondelete="SET NULL"), nullable=True)
+    status = Column(Enum(AssessmentStatus), nullable=False, default=AssessmentStatus.draft)
+    created_by = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
 
     subject = relationship("Subject", lazy="selectin")
     class_ = relationship("Class", lazy="selectin")
@@ -302,7 +317,8 @@ class StudentMark(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     assessment_id = Column(Integer, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
-    marks_obtained = Column(Float, nullable=False)
+    marks_obtained = Column(Float, nullable=True)
+    status = Column(Enum(MarkStatus), nullable=False, default=MarkStatus.submitted)
 
     student = relationship("Student", lazy="selectin")
     assessment = relationship("Assessment", back_populates="marks")
