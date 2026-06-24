@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './AdminPanel.module.scss';
@@ -12,22 +12,42 @@ import Dialog from '../../components/ui/Dialog';
 import DeleteConfirmationModal from '../../components/ui/DeleteConfirmationModal';
 import {
   adminGetStudents, adminCreateStudent, adminDeleteStudent,
+  adminGetClassSummaries, adminGetClassSections,
   adminGetTeachers, adminCreateTeacher, adminDeleteTeacher,
   adminGetSubjects, adminCreateSubject, adminUpdateSubject, adminDeleteSubject,
   adminGetClassSubjects, adminAssignSubjectToClass, adminRemoveSubjectFromClass,
   getClasses, adminCreateClass, adminCreateSection, exportAttendanceApi,
   adminDeleteClass, adminDeleteSection,
+  updateBrandingSettings, uploadBrandingLogo, uploadBrandingFavicon, resetBranding,
+  adminGetCumulativeReport, adminGetShortageReport, adminGetRegisterReport, adminGetAuditTrailReport,
 } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useBranding } from '../../context/BrandingContext';
 import {
   GraduationCap, Users, BookOpen, School, Plus, Trash2, FileSpreadsheet,
-  Pencil, X, Check, Link2, Unlink, LayoutDashboard
+  Pencil, X, Check, Link2, Unlink, LayoutDashboard, Palette, Upload, RotateCcw, Image,
+  ShieldAlert, History, FileText
 } from 'lucide-react';
 import AdminDashboardTab from './AdminDashboardTab';
 import StudentAnalyticsDrawer from '../../components/admin/StudentAnalyticsDrawer';
 import TeacherAnalyticsDrawer from '../../components/admin/TeacherAnalyticsDrawer';
 
-type TabKey = 'dashboard' | 'students' | 'teachers' | 'subjects' | 'classes' | 'reports';
+type TabKey = 'dashboard' | 'students' | 'teachers' | 'subjects' | 'classes' | 'reports' | 'branding';
+
+interface ThemeOption {
+  key: string;
+  label: string;
+  colors: string[]; // [bg, accent, text]
+}
+
+const THEMES: ThemeOption[] = [
+  { key: 'dark-purple', label: 'Dark Purple', colors: ['#18181b', '#6366f1', '#818cf8'] },
+  { key: 'light', label: 'Light', colors: ['#ffffff', '#6366f1', '#111827'] },
+  { key: 'dark-blue', label: 'Dark Blue', colors: ['#1e293b', '#3b82f6', '#60a5fa'] },
+  { key: 'emerald', label: 'Emerald', colors: ['#0c1e14', '#10b981', '#34d399'] },
+  { key: 'royal', label: 'Royal', colors: ['#2d1432', '#a855f7', '#c084fc'] },
+  { key: 'crimson', label: 'Crimson', colors: ['#280f0f', '#ef4444', '#f87171'] },
+];
 
 interface SectionData {
   id: number;
@@ -45,6 +65,7 @@ interface StudentRow {
   id: number;
   register_number: string;
   name: string;
+  parent_email?: string | null;
   class_id: number;
   section_id: number;
 }
@@ -64,6 +85,7 @@ interface SubjectRow {
 interface StudentForm {
   name: string;
   register_number: string;
+  parent_email: string;
   class_id: string;
   section_id: string;
   password: string;
@@ -82,6 +104,7 @@ const TAB_PATHS: Record<TabKey, string> = {
   subjects: '/admin/subjects',
   classes: '/admin/classes',
   reports: '/admin/reports',
+  branding: '/admin/branding',
 };
 
 const getTabFromPath = (pathname: string): TabKey => {
@@ -90,6 +113,7 @@ const getTabFromPath = (pathname: string): TabKey => {
   if (pathname === '/admin/subjects') return 'subjects';
   if (pathname === '/admin/classes') return 'classes';
   if (pathname === '/admin/reports') return 'reports';
+  if (pathname === '/admin/branding') return 'branding';
   return 'dashboard';
 };
 
@@ -105,10 +129,16 @@ const AdminPanel: React.FC = () => {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [studentPage, setStudentPage] = useState(1);
   const [studentTotal, setStudentTotal] = useState(0);
+  const [selectedClassForStudents, setSelectedClassForStudents] = useState<{ id: number; name: string } | null>(null);
+  const [selectedSectionForStudents, setSelectedSectionForStudents] = useState<{ id: number; name: string } | null>(null);
+  const [classSummaries, setClassSummaries] = useState<{ id: number, name: string, student_count: number, section_count: number }[]>([]);
+  const [sectionSummaries, setSectionSummaries] = useState<{ id: number, name: string, student_count: number }[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudent, setNewStudent] = useState<StudentForm>({
     name: '',
     register_number: '',
+    parent_email: '',
     class_id: '',
     section_id: '',
     password: 'student123',
@@ -148,6 +178,7 @@ const AdminPanel: React.FC = () => {
   }>({ open: false, entityType: 'class', entityId: 0, entityName: '' });
 
   const { showToast } = useToast();
+  const branding = useBranding();
   const [exportLoading, setExportLoading] = useState(false);
   const [exportDates, setExportDates] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -157,15 +188,174 @@ const AdminPanel: React.FC = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
 
+  // Accreditation Reports State
+  const [selectedReportType, setSelectedReportType] = useState<'cumulative' | 'register' | 'shortage' | 'audit_trail'>('cumulative');
+  const [reportClassId, setReportClassId] = useState<string>('');
+  const [reportSectionId, setReportSectionId] = useState<string>('');
+  const [reportSubjectId, setReportSubjectId] = useState<string>('');
+  const [reportFormat, setReportFormat] = useState<'csv' | 'xlsx'>('csv');
+  const [reportSections, setReportSections] = useState<{ id: number, name: string }[]>([]);
+  const [reportSubjects, setReportSubjects] = useState<{ id: number, name: string }[]>([]);
+
+  const handleReportClassChange = async (classId: string) => {
+    setReportClassId(classId);
+    setReportSectionId('');
+    setReportSubjectId('');
+    setReportSections([]);
+    setReportSubjects([]);
+    if (!classId) return;
+    try {
+      const secRes = await adminGetClassSections(Number(classId));
+      setReportSections(secRes.data);
+      const subRes = await adminGetClassSubjects(Number(classId));
+      setReportSubjects(subRes.data);
+    } catch (err) {
+      console.error('Failed to load class info for reports', err);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    if (!exportDates.start || !exportDates.end) {
+      showToast('error', 'Please select start and end dates.');
+      return;
+    }
+    
+    if (selectedReportType !== 'audit_trail') {
+      if (!reportClassId) {
+        showToast('error', 'Please select a Class.');
+        return;
+      }
+      if (!reportSectionId) {
+        showToast('error', 'Please select a Section.');
+        return;
+      }
+    }
+    
+    if (selectedReportType === 'register' && !reportSubjectId) {
+      showToast('error', 'Please select a Subject.');
+      return;
+    }
+
+    setExportLoading(true);
+    try {
+      let res;
+      let defaultFilename = '';
+      
+      const params = {
+        start_date: exportDates.start,
+        end_date: exportDates.end,
+        format: reportFormat
+      };
+
+      if (selectedReportType === 'cumulative') {
+        res = await adminGetCumulativeReport({
+          ...params,
+          class_id: Number(reportClassId),
+          section_id: Number(reportSectionId)
+        });
+        defaultFilename = `cumulative_attendance_${exportDates.start}_to_${exportDates.end}.${reportFormat}`;
+      } else if (selectedReportType === 'shortage') {
+        res = await adminGetShortageReport({
+          ...params,
+          class_id: Number(reportClassId),
+          section_id: Number(reportSectionId)
+        });
+        defaultFilename = `attendance_shortage_${exportDates.start}_to_${exportDates.end}.${reportFormat}`;
+      } else if (selectedReportType === 'register') {
+        res = await adminGetRegisterReport({
+          ...params,
+          class_id: Number(reportClassId),
+          section_id: Number(reportSectionId),
+          subject_id: Number(reportSubjectId)
+        });
+        const subjName = reportSubjects.find(s => s.id === Number(reportSubjectId))?.name || `subject_${reportSubjectId}`;
+        const cleanSubjName = subjName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        defaultFilename = `attendance_register_${cleanSubjName}_${exportDates.start}_to_${exportDates.end}.${reportFormat}`;
+      } else if (selectedReportType === 'audit_trail') {
+        res = await adminGetAuditTrailReport(params);
+        defaultFilename = `audit_trail_${exportDates.start}_to_${exportDates.end}.${reportFormat}`;
+      }
+
+      if (res && res.data) {
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', defaultFilename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showToast('success', `${defaultFilename} downloaded successfully.`);
+      }
+    } catch (err: any) {
+      console.error('Failed to generate compliance report', err);
+      if (err.response && err.response.data instanceof Blob) {
+        const text = await err.response.data.text();
+        try {
+          const parsed = JSON.parse(text);
+          showToast('error', parsed.detail || 'Failed to generate report');
+        } catch {
+          showToast('error', 'Failed to generate report');
+        }
+      } else {
+        showToast('error', err.response?.data?.detail || err.message || 'Failed to generate report');
+      }
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // ── Branding tab state ───────────────────────────────────────
+  const [brandingName, setBrandingName] = useState(branding.schoolName);
+  const [brandingTheme, setBrandingTheme] = useState(branding.themeName);
+  const [brandingSaving, setBrandingSaving] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [logoDragOver, setLogoDragOver] = useState(false);
+  const [faviconDragOver, setFaviconDragOver] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [pendingFaviconFile, setPendingFaviconFile] = useState<File | null>(null);
+
+  // Sync branding state when context loads
+  useEffect(() => {
+    if (!branding.loading) {
+      setBrandingName(branding.schoolName);
+      setBrandingTheme(branding.themeName);
+      setLogoPreview(branding.logoUrl ? (branding.logoUrl.startsWith('http') ? branding.logoUrl : `http://localhost:8000${branding.logoUrl}`) : null);
+      setFaviconPreview(branding.faviconUrl ? (branding.faviconUrl.startsWith('http') ? branding.faviconUrl : `http://localhost:8000${branding.faviconUrl}`) : null);
+    }
+  }, [branding.loading, branding.schoolName, branding.themeName, branding.logoUrl, branding.faviconUrl]);
+
+  const loadClassSummaries = useCallback(async () => {
+    try {
+      const res = await adminGetClassSummaries();
+      setClassSummaries(res.data);
+    } catch (error) {
+      console.error('Failed to load class summaries', error);
+    }
+  }, []);
+
+  const loadSectionSummaries = useCallback(async (classId: number) => {
+    try {
+      const res = await adminGetClassSections(classId);
+      setSectionSummaries(res.data);
+    } catch (error) {
+      console.error('Failed to load section summaries', error);
+    }
+  }, []);
+
   const loadStudents = useCallback(async () => {
     try {
-      const res = await adminGetStudents(studentPage);
+      const classId = selectedClassForStudents?.id;
+      const sectionId = selectedSectionForStudents?.id;
+      const res = await adminGetStudents(studentPage, classId, sectionId);
       setStudents(res.data.students);
       setStudentTotal(res.data.total);
     } catch (error) {
       console.error('Failed to load students', error);
     }
-  }, [studentPage]);
+  }, [studentPage, selectedClassForStudents, selectedSectionForStudents]);
 
   const loadTeachers = useCallback(async () => {
     try {
@@ -196,11 +386,19 @@ const AdminPanel: React.FC = () => {
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    void loadStudents();
     void loadTeachers();
     void loadSubjects();
     void loadClasses();
-  }, [loadStudents, loadTeachers, loadSubjects, loadClasses]);
+    void loadClassSummaries();
+  }, [loadTeachers, loadSubjects, loadClasses, loadClassSummaries]);
+
+  useEffect(() => {
+    if (selectedClassForStudents && !selectedSectionForStudents) {
+      void loadSectionSummaries(selectedClassForStudents.id);
+    } else if (selectedClassForStudents && selectedSectionForStudents) {
+      void loadStudents();
+    }
+  }, [selectedClassForStudents, selectedSectionForStudents, loadSectionSummaries, loadStudents, studentPage]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCreateStudent = async () => {
@@ -214,6 +412,7 @@ const AdminPanel: React.FC = () => {
       setNewStudent({
         name: '',
         register_number: '',
+        parent_email: '',
         class_id: '',
         section_id: '',
         password: 'student123',
@@ -396,6 +595,58 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // ── Branding handlers ─────────────────────────────────────────
+  const handleLogoFile = (file: File) => {
+    setPendingLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleFaviconFile = (file: File) => {
+    setPendingFaviconFile(file);
+    setFaviconPreview(URL.createObjectURL(file));
+  };
+
+  const handleSaveBranding = async () => {
+    setBrandingSaving(true);
+    try {
+      // Upload files first if pending
+      if (pendingLogoFile) {
+        await uploadBrandingLogo(pendingLogoFile);
+        setPendingLogoFile(null);
+      }
+      if (pendingFaviconFile) {
+        await uploadBrandingFavicon(pendingFaviconFile);
+        setPendingFaviconFile(null);
+      }
+      // Update settings
+      await updateBrandingSettings({ school_name: brandingName, theme_name: brandingTheme });
+      await branding.refreshBranding();
+      showToast('success', 'Branding settings saved!');
+    } catch (error: unknown) {
+      showToast('error', getErrorMessage(error, 'Failed to save branding'));
+    } finally {
+      setBrandingSaving(false);
+    }
+  };
+
+  const handleResetBranding = async () => {
+    if (!confirm('Reset all branding to defaults? This cannot be undone.')) return;
+    setBrandingSaving(true);
+    try {
+      await resetBranding();
+      setPendingLogoFile(null);
+      setPendingFaviconFile(null);
+      setLogoPreview(null);
+      setFaviconPreview(null);
+      await branding.refreshBranding();
+      showToast('success', 'Branding reset to defaults');
+    } catch (error: unknown) {
+      showToast('error', getErrorMessage(error, 'Failed to reset branding'));
+    } finally {
+      setBrandingSaving(false);
+    }
+  };
+
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
     { key: 'students', label: 'Students', icon: <GraduationCap size={16} /> },
@@ -403,6 +654,7 @@ const AdminPanel: React.FC = () => {
     { key: 'subjects', label: 'Subjects', icon: <BookOpen size={16} /> },
     { key: 'classes', label: 'Classes & Sections', icon: <School size={16} /> },
     { key: 'reports', label: 'Reports', icon: <FileSpreadsheet size={16} /> },
+    { key: 'branding', label: 'Branding', icon: <Palette size={16} /> },
   ];
 
   return (
@@ -424,40 +676,107 @@ const AdminPanel: React.FC = () => {
 
         {activeTab === 'students' && (
           <Card>
-            <CardHeader title={`Students (${studentTotal})`}>
+            <CardHeader title="Student Management">
               <div className={styles.sectionHeader} style={{ marginTop: 12 }}>
                 <div />
                 <Button size="sm" onClick={() => setShowAddStudent(true)}><Plus size={16} /> Add Student</Button>
               </div>
             </CardHeader>
             <CardBody>
-              <Table<StudentRow>
-                columns={[
-                  { key: 'id', header: 'ID' },
-                  { key: 'register_number', header: 'Reg. No.' },
-                  { key: 'name', header: 'Name' },
-                  { key: 'class_id', header: 'Class ID' },
-                  { key: 'section_id', header: 'Section ID' },
-                  {
-                    key: 'actions',
-                    header: 'Actions',
-                    render: (item) => (
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteStudent(item.id)}>
-                        <Trash2 size={14} />
-                      </Button>
-                    ),
-                  },
-                ]}
-                data={students}
-                emptyMessage="No students found"
-                onRowClick={(item) => setSelectedStudentId(item.id)}
-              />
-              {studentTotal > 50 && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
-                  <Button variant="outline" size="sm" disabled={studentPage <= 1} onClick={() => setStudentPage((p) => p - 1)}>Previous</Button>
-                  <span style={{ padding: '6px 12px', color: '#a1a1aa', fontSize: '0.875rem' }}>Page {studentPage}</span>
-                  <Button variant="outline" size="sm" disabled={studentPage * 50 >= studentTotal} onClick={() => setStudentPage((p) => p + 1)}>Next</Button>
-                </div>
+              {/* Level 1: Class Overview */}
+              {!selectedClassForStudents && (
+                <>
+                  <p style={{ color: '#a1a1aa', marginBottom: 16 }}>Select a class to view sections and students.</p>
+                  <div className={styles.classGrid}>
+                    {classSummaries.map((cls) => (
+                      <div key={cls.id} className={styles.classCard} onClick={() => setSelectedClassForStudents({ id: cls.id, name: cls.name })}>
+                        <h3>{cls.name}</h3>
+                        <div className={styles.stats}>
+                          <span><Users size={14} /> {cls.student_count} Students</span>
+                          <span><School size={14} /> {cls.section_count} Sections</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Level 2: Section Overview */}
+              {selectedClassForStudents && !selectedSectionForStudents && (
+                <>
+                  <div className={styles.breadcrumb}>
+                    <button onClick={() => setSelectedClassForStudents(null)}>All Classes</button>
+                    <span className="separator">/</span>
+                    <span className="current">{selectedClassForStudents.name}</span>
+                  </div>
+                  <p style={{ color: '#a1a1aa', marginBottom: 16 }}>Select a section in {selectedClassForStudents.name}.</p>
+                  <div className={styles.classGrid}>
+                    {sectionSummaries.map((sec) => (
+                      <div key={sec.id} className={styles.classCard} onClick={() => setSelectedSectionForStudents({ id: sec.id, name: sec.name })}>
+                        <h3>Section {sec.name}</h3>
+                        <div className={styles.stats}>
+                          <span><Users size={14} /> {sec.student_count} Students</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Level 3: Student List */}
+              {selectedClassForStudents && selectedSectionForStudents && (
+                <>
+                  <div className={styles.breadcrumb}>
+                    <button onClick={() => { setSelectedClassForStudents(null); setSelectedSectionForStudents(null); }}>All Classes</button>
+                    <span className="separator">/</span>
+                    <button onClick={() => setSelectedSectionForStudents(null)}>{selectedClassForStudents.name}</button>
+                    <span className="separator">/</span>
+                    <span className="current">Section {selectedSectionForStudents.name}</span>
+                  </div>
+
+                  <div className={styles.sectionHeader} style={{ marginBottom: 16 }}>
+                    <Input 
+                      placeholder="Search students..." 
+                      value={studentSearch} 
+                      onChange={(e) => setStudentSearch(e.target.value)} 
+                      style={{ maxWidth: 300 }}
+                    />
+                    <div style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Total: {studentTotal}</div>
+                  </div>
+
+                  <Table<StudentRow>
+                    columns={[
+                      { key: 'id', header: 'ID' },
+                      { key: 'register_number', header: 'Reg. No.' },
+                      { key: 'name', header: 'Name' },
+                      { key: 'parent_email', header: 'Notification Status', render: (item) => item.parent_email ? <span style={{color: '#10b981'}}>Configured</span> : <span style={{color: '#ef4444'}}>Missing</span> },
+                      { key: 'class_id', header: 'Class ID' },
+                      { key: 'section_id', header: 'Section ID' },
+                      {
+                        key: 'actions',
+                        header: 'Actions',
+                        render: (item) => (
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteStudent(item.id); }}>
+                            <Trash2 size={14} />
+                          </Button>
+                        ),
+                      },
+                    ]}
+                    data={students.filter(s => 
+                      s.name.toLowerCase().includes(studentSearch.toLowerCase()) || 
+                      s.register_number.toLowerCase().includes(studentSearch.toLowerCase())
+                    )}
+                    emptyMessage="No students found"
+                    onRowClick={(item) => setSelectedStudentId(item.id)}
+                  />
+                  {studentTotal > 50 && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+                      <Button variant="outline" size="sm" disabled={studentPage <= 1} onClick={() => setStudentPage((p) => p - 1)}>Previous</Button>
+                      <span style={{ padding: '6px 12px', color: '#a1a1aa', fontSize: '0.875rem' }}>Page {studentPage}</span>
+                      <Button variant="outline" size="sm" disabled={studentPage * 50 >= studentTotal} onClick={() => setStudentPage((p) => p + 1)}>Next</Button>
+                    </div>
+                  )}
+                </>
               )}
             </CardBody>
 
@@ -470,6 +789,7 @@ const AdminPanel: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <Input label="Name" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} />
                 <Input label="Register Number" value={newStudent.register_number} onChange={(e) => setNewStudent({ ...newStudent, register_number: e.target.value })} />
+                <Input label="Parent Email (Optional)" type="email" value={newStudent.parent_email} onChange={(e) => setNewStudent({ ...newStudent, parent_email: e.target.value })} />
                 <Select
                   label="Class"
                   placeholder="Select Class"
@@ -754,33 +1074,174 @@ const AdminPanel: React.FC = () => {
         )}
 
         {activeTab === 'reports' && (
-          <Card>
-            <CardHeader title="Attendance Reports" description="Download system-wide attendance records in CSV format." />
-            <CardBody>
-              <div style={{ maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>Detailed Report Range</label>
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <input
-                      type="date"
-                      value={exportDates.start}
-                      onChange={(e) => setExportDates({ ...exportDates, start: e.target.value })}
-                      style={{
-                        flex: 1, padding: '10px 14px', background: '#09090b', border: '1px solid #27272a', borderRadius: 8, color: '#fff'
-                      }}
-                    />
-                    <input
-                      type="date"
-                      value={exportDates.end}
-                      onChange={(e) => setExportDates({ ...exportDates, end: e.target.value })}
-                      style={{
-                        flex: 1, padding: '10px 14px', background: '#09090b', border: '1px solid #27272a', borderRadius: 8, color: '#fff'
-                      }}
-                    />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: 4 }}>Accreditation & Audit Compliance Reports</h2>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.5)' }}>
+                Generate NAAC, NBA, and UGC-compliant audit sheets, attendance registers, and shortage logs.
+              </p>
+            </div>
+
+            <div className={styles.reportsGrid}>
+              <button
+                type="button"
+                onClick={() => setSelectedReportType('cumulative')}
+                className={`${styles.reportCard} ${selectedReportType === 'cumulative' ? styles.activeReport : ''}`}
+              >
+                <div className={styles.iconWrapper}>
+                  <FileSpreadsheet size={20} />
+                </div>
+                <h3>NAAC Cumulative Report</h3>
+                <p>Calculates cumulative attendance averages, totals, and compliance status for NAAC audits.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReportType('register')}
+                className={`${styles.reportCard} ${selectedReportType === 'register' ? styles.activeReport : ''}`}
+              >
+                <div className={styles.iconWrapper}>
+                  <BookOpen size={20} />
+                </div>
+                <h3>NBA Course Register</h3>
+                <p>Generates a student-by-date matrix register for course compliance audits.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReportType('shortage')}
+                className={`${styles.reportCard} ${selectedReportType === 'shortage' ? styles.activeReport : ''}`}
+              >
+                <div className={styles.iconWrapper}>
+                  <ShieldAlert size={20} />
+                </div>
+                <h3>Attendance Shortage</h3>
+                <p>Isolates students below the 75% compliance threshold showing their current deficit %.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReportType('audit_trail')}
+                className={`${styles.reportCard} ${selectedReportType === 'audit_trail' ? styles.activeReport : ''}`}
+              >
+                <div className={styles.iconWrapper}>
+                  <History size={20} />
+                </div>
+                <h3>Compliance Audit Trail</h3>
+                <p>Generates database logs documenting data modification integrity and submissions.</p>
+              </button>
+            </div>
+
+            <div className={styles.filterPanel}>
+              <div className={styles.filterHeader}>
+                <FileText size={18} />
+                <span>Configure Report Details</span>
+              </div>
+
+              <div className={styles.filterGrid}>
+                {selectedReportType !== 'audit_trail' && (
+                  <>
+                    <div className={styles.filterItem}>
+                      <label>Class</label>
+                      <select
+                        value={reportClassId}
+                        onChange={(e) => handleReportClassChange(e.target.value)}
+                      >
+                        <option value="">Select Class</option>
+                        {classSummaries.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.filterItem}>
+                      <label>Section</label>
+                      <select
+                        value={reportSectionId}
+                        onChange={(e) => setReportSectionId(e.target.value)}
+                        disabled={!reportClassId}
+                      >
+                        <option value="">Select Section</option>
+                        {reportSections.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {selectedReportType === 'register' && (
+                  <div className={styles.filterItem}>
+                    <label>Subject</label>
+                    <select
+                      value={reportSubjectId}
+                      onChange={(e) => setReportSubjectId(e.target.value)}
+                      disabled={!reportClassId}
+                    >
+                      <option value="">Select Subject</option>
+                      {reportSubjects.map((sub) => (
+                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className={styles.filterItem}>
+                  <label>Start Date</label>
+                  <input
+                    type="date"
+                    value={exportDates.start}
+                    onChange={(e) => setExportDates({ ...exportDates, start: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.filterItem}>
+                  <label>End Date</label>
+                  <input
+                    type="date"
+                    value={exportDates.end}
+                    onChange={(e) => setExportDates({ ...exportDates, end: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.filterItem}>
+                  <label>Format</label>
+                  <div className={styles.formatToggleGroup}>
+                    <button
+                      type="button"
+                      onClick={() => setReportFormat('csv')}
+                      className={reportFormat === 'csv' ? styles.activeFormat : ''}
+                    >
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReportFormat('xlsx')}
+                      className={reportFormat === 'xlsx' ? styles.activeFormat : ''}
+                    >
+                      XLSX (Mock)
+                    </button>
                   </div>
                 </div>
-                
-                <Button 
+              </div>
+
+              <div className={styles.complianceCard}>
+                <div className={styles.complianceIcon}>
+                  <ShieldAlert size={20} />
+                </div>
+                <div className={styles.complianceContent}>
+                  <h4>Regulatory Advisory & Audit Guidance</h4>
+                  <p>
+                    {selectedReportType === 'cumulative' && "NAAC criteria requires cumulative attendance records demonstrating academic engagement. Calculated using (Present / (Present + Absent)) * 100."}
+                    {selectedReportType === 'register' && "NBA guidelines demand class-by-class tracing for every credit-hour. This matrix lists attendance status chronologically with final percentage averages."}
+                    {selectedReportType === 'shortage' && "UGC rules mandate a minimum of 75% attendance. This report highlights deficit margins to assist in exam-debarment decisions."}
+                    {selectedReportType === 'audit_trail' && "Data integrity audits require verifiable logs of attendance submissions and modifications. Captures timestamp, action, target, and user."}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <Button
                   onClick={async () => {
                     setExportLoading(true);
                     try {
@@ -801,16 +1262,187 @@ const AdminPanel: React.FC = () => {
                     } finally {
                       setExportLoading(false);
                     }
-                  }} 
+                  }}
                   loading={exportLoading}
+                  variant="outline"
+                >
+                  Download Global CSV
+                </Button>
+
+                <Button
+                  onClick={handleDownloadReport}
+                  loading={exportLoading}
+                  disabled={exportLoading}
                 >
                   <FileSpreadsheet size={18} />
-                  Download Global Attendance CSV
+                  Download Report
                 </Button>
-                
-                <p style={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-                  The global report includes every attendance record across all classes, sections, and subjects within the selected date range. Best for auditing and long-term analysis.
-                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'branding' && (
+          <Card>
+            <CardHeader
+              title="White Label & Branding"
+              description="Customize your institution's identity across the entire application."
+            />
+            <CardBody>
+              {/* Institution Name */}
+              <div className={styles.brandingSection}>
+                <h3>Institution Name</h3>
+                <p>This name appears in the sidebar, login page, and browser title.</p>
+                <Input
+                  id="branding-school-name"
+                  label="School / College Name"
+                  value={brandingName}
+                  onChange={(e) => setBrandingName(e.target.value)}
+                  placeholder="e.g. Springfield College of Engineering"
+                />
+              </div>
+
+              {/* Theme Selection */}
+              <div className={styles.brandingSection} style={{ marginTop: 32 }}>
+                <h3>Application Theme</h3>
+                <p>Select a color theme. Changes apply instantly on save.</p>
+                <div className={styles.themeGrid}>
+                  {THEMES.map((theme) => (
+                    <div
+                      key={theme.key}
+                      className={`${styles.themeCard} ${brandingTheme === theme.key ? styles.activeTheme : ''}`}
+                      onClick={() => setBrandingTheme(theme.key)}
+                    >
+                      {brandingTheme === theme.key && (
+                        <div className={styles.themeCheck}>
+                          <Check size={11} />
+                        </div>
+                      )}
+                      <div className={styles.themePreview}>
+                        {theme.colors.map((color, i) => (
+                          <span key={i} style={{ backgroundColor: color }} />
+                        ))}
+                      </div>
+                      <div className={styles.themeLabel}>{theme.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Logo & Favicon Uploads */}
+              <div className={styles.brandingGrid} style={{ marginTop: 32 }}>
+                {/* Logo Upload */}
+                <div className={styles.brandingSection}>
+                  <h3>Application Logo</h3>
+                  <p>Recommended: PNG or SVG, max 5 MB.</p>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoFile(file);
+                    }}
+                  />
+                  {logoPreview ? (
+                    <div className={styles.uploadPreview}>
+                      <img src={logoPreview} alt="Logo preview" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setLogoPreview(null);
+                          setPendingLogoFile(null);
+                        }}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`${styles.uploadZone} ${logoDragOver ? styles.dragOver : ''}`}
+                      onClick={() => logoInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setLogoDragOver(true); }}
+                      onDragLeave={() => setLogoDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setLogoDragOver(false);
+                        const file = e.dataTransfer.files[0];
+                        if (file) handleLogoFile(file);
+                      }}
+                    >
+                      <Upload size={28} />
+                      <p>Click or drag to upload logo</p>
+                      <span>PNG, SVG, WebP — max 5 MB</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Favicon Upload */}
+                <div className={styles.brandingSection}>
+                  <h3>Browser Favicon</h3>
+                  <p>Recommended: ICO or PNG, 32×32 or 64×64.</p>
+                  <input
+                    ref={faviconInputRef}
+                    type="file"
+                    accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/ico,image/svg+xml"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFaviconFile(file);
+                    }}
+                  />
+                  {faviconPreview ? (
+                    <div className={styles.uploadPreview}>
+                      <img src={faviconPreview} alt="Favicon preview" style={{ maxHeight: 48 }} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFaviconPreview(null);
+                          setPendingFaviconFile(null);
+                        }}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`${styles.uploadZone} ${faviconDragOver ? styles.dragOver : ''}`}
+                      onClick={() => faviconInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setFaviconDragOver(true); }}
+                      onDragLeave={() => setFaviconDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setFaviconDragOver(false);
+                        const file = e.dataTransfer.files[0];
+                        if (file) handleFaviconFile(file);
+                      }}
+                    >
+                      <Image size={28} />
+                      <p>Click or drag to upload favicon</p>
+                      <span>ICO, PNG — 32×32 or 64×64</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className={styles.brandingActions}>
+                <Button
+                  variant="outline"
+                  onClick={handleResetBranding}
+                  loading={brandingSaving}
+                >
+                  <RotateCcw size={16} /> Reset to Defaults
+                </Button>
+                <Button
+                  onClick={handleSaveBranding}
+                  loading={brandingSaving}
+                >
+                  Save Branding
+                </Button>
               </div>
             </CardBody>
           </Card>

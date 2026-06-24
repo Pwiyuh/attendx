@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "super-secret-key-change-me-in-production-abc123"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     ALGORITHM: str = "HS256"
+    MIN_ATTENDANCE_PERCENTAGE: float = 75.0
 
     class Config:
         env_file = ".env"

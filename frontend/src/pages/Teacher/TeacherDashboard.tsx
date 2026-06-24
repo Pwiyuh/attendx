@@ -7,13 +7,15 @@ import { Input } from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 import Table from '../../components/ui/Table';
+import Dialog from '../../components/ui/Dialog';
 import { Toggle } from '../../components/ui/Extras';
 import {
   getClasses, getSubjects, getStudentsBySection, submitBulkAttendance, getAttendanceForDate, exportAttendanceApi,
-  teacherCreateSubject, teacherGetClassSubjects,
+  teacherCreateSubject, teacherGetClassSubjects, teacherNotifyAbsentees
 } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import { Users, UserCheck, UserX, ClipboardList, Download, Plus } from 'lucide-react';
+import StudentAnalyticsDrawer from '../../components/admin/StudentAnalyticsDrawer';
+import { Users, UserCheck, UserX, ClipboardList, Download, Plus, Mail } from 'lucide-react';
 
 interface SectionData {
   id: number;
@@ -53,6 +55,7 @@ const getErrorMessage = (error: unknown, fallback: string) => (
 
 const TeacherDashboard: React.FC = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [subjects, setSubjects] = useState<SubjectData[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
@@ -65,6 +68,8 @@ const TeacherDashboard: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [classSubjects, setClassSubjects] = useState<SubjectData[]>([]);
+  const [showNotifyDialog, setShowNotifyDialog] = useState(false);
+  const [notifying, setNotifying] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,6 +210,29 @@ const TeacherDashboard: React.FC = () => {
     }
   };
 
+  const handleNotifyAbsentees = async () => {
+    if (!selectedSubject || !selectedSection || !selectedDate) return;
+    setNotifying(true);
+    try {
+      const res = await teacherNotifyAbsentees({
+        subject_id: Number(selectedSubject),
+        section_id: Number(selectedSection),
+        date: selectedDate,
+      });
+      const data = res.data;
+      if (data.success) {
+        showToast('success', `Sent ${data.notified_count} notifications. Skipped ${data.skipped_count} (already notified).`);
+      } else {
+        showToast('error', `Completed with errors. Notified: ${data.notified_count}. Check logs.`);
+      }
+    } catch (error: unknown) {
+      showToast('error', getErrorMessage(error, 'Failed to send notifications'));
+    } finally {
+      setNotifying(false);
+      setShowNotifyDialog(false);
+    }
+  };
+
   const handleExport = async () => {
     if (!selectedClass || !selectedSection || !selectedSubject) {
       showToast('info', 'Please select class, section and subject to export');
@@ -245,7 +273,19 @@ const TeacherDashboard: React.FC = () => {
 
   const columns = [
     { key: 'register_number', header: 'Reg. No.' },
-    { key: 'name', header: 'Student Name' },
+    {
+      key: 'name',
+      header: 'Student Name',
+      render: (item: StudentRecord) => (
+        <button
+          onClick={() => setSelectedStudentId(item.id)}
+          className={styles.studentLink}
+          title="Click to view analytics"
+        >
+          {item.name}
+        </button>
+      ),
+    },
     {
       key: 'status',
       header: 'Status',
@@ -379,10 +419,16 @@ const TeacherDashboard: React.FC = () => {
                     Export CSV
                   </Button>
                 </div>
-                <Button variant="primary" onClick={handleSubmit} loading={submitting} disabled={!selectedSubject}>
-                  <ClipboardList size={16} />
-                  Submit Attendance
-                </Button>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Button variant="secondary" onClick={() => setShowNotifyDialog(true)} disabled={!selectedSubject || absentCount === 0}>
+                    <Mail size={16} />
+                    Notify Absentees
+                  </Button>
+                  <Button variant="primary" onClick={handleSubmit} loading={submitting} disabled={!selectedSubject}>
+                    <ClipboardList size={16} />
+                    Submit Attendance
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardBody className={styles.attendanceTable}>
@@ -391,6 +437,33 @@ const TeacherDashboard: React.FC = () => {
           </Card>
         )}
       </div>
+      <StudentAnalyticsDrawer
+        studentId={selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+      />
+
+      <Dialog
+        open={showNotifyDialog}
+        onClose={() => setShowNotifyDialog(false)}
+        title="Notify Parents of Absentees"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowNotifyDialog(false)} disabled={notifying}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleNotifyAbsentees} loading={notifying}>
+              Confirm & Send
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: '#fafafa', fontSize: '0.9375rem', lineHeight: 1.5 }}>
+          This will send an email notification to the parents of the <strong>{absentCount}</strong> students currently marked absent.
+        </p>
+        <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginTop: 12, lineHeight: 1.5 }}>
+          The system will automatically prevent duplicate notifications for the same subject and date. Please ensure you have submitted the latest attendance before notifying.
+        </p>
+      </Dialog>
     </Layout>
   );
 };

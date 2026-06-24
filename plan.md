@@ -31,19 +31,19 @@
 
 ---
 
-## 🔜 Next: Parent Notification System
+## ✅ Completed: Parent Notification System
 
-- [ ] Add `parent_email` column to `students` table.
-- [ ] Update student CRUD schemas and admin UI to include parent email field.
-- [ ] Create `notification_service.py` (mock email logger for development).
-- [ ] Add "Notify Absentees" endpoint: `POST /api/attendance/notify-absentees`.
-- [ ] Add "Notify Absentees" button to Teacher Dashboard.
+- [x] Add `parent_email` column to `students` table.
+- [x] Update student CRUD schemas and admin UI to include parent email field.
+- [x] Create `notification.py` service (mock email logger for development).
+- [x] Add "Notify Absentees" endpoint: `POST /api/teacher/attendance/notify`.
+- [x] Add "Notify Absentees" button and dialog to Teacher Dashboard.
 
 ---
 
 ## 🔜 Future Improvements
 
-- [ ] Update Login page to match galactic glassmorphism theme.
-- [ ] SEO meta tags on Landing Page.
+- [x] Update Login page to match galactic glassmorphism theme.
+- [x] SEO meta tags on Landing Page.
 - [ ] Production deployment (Docker + CI/CD).
 - [ ] Multi-tenancy (schema-per-tenant or row-level isolation).

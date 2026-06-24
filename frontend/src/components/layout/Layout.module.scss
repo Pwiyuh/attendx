@@ -13,7 +13,7 @@ $sidebar-collapsed-width: 68px;
 // ── Sidebar ───────────────────────────────────────────────────────
 .sidebar {
   width: $sidebar-width;
-  background: $bg-secondary;
+  background: rgba(17, 17, 19, 0.23);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid $border-color;
@@ -258,7 +258,7 @@ $sidebar-collapsed-width: 68px;
   align-items: center;
   justify-content: space-between;
   padding: 0 $space-8;
-  background: rgba($bg-secondary, 0.5);
+  background: rgba(17, 17, 19, 0.23);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;

@@ -47,7 +47,7 @@
     &.indigo { background: $accent-primary-dim; color: $accent-primary; }
     &.green { background: $accent-success-dim; color: $accent-success; }
     &.yellow { background: $accent-warning-dim; color: $accent-warning; }
-    &.red { background: rgba($accent-danger, 0.15); color: $accent-danger; }
+    &.red { background: var(--accent-danger-dim); color: $accent-danger; }
   }
 
   .statInfo {
@@ -101,7 +101,7 @@
   gap: $space-3;
   padding: $space-4 $space-5;
   background: $accent-success-dim;
-  border: 1px solid rgba($accent-success, 0.3);
+  border: 1px solid var(--accent-success-dim);
   border-radius: $radius-md;
   color: $accent-success;
   font-weight: $weight-medium;
@@ -111,4 +111,20 @@
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.studentLink {
+  background: none;
+  border: none;
+  color: $accent-primary;
+  cursor: pointer;
+  padding: 0;
+  font-weight: $weight-medium;
+  text-align: left;
+  font-size: inherit;
+  
+  &:hover {
+    color: $accent-primary-hover;
+    text-decoration: underline;
+  }
 }

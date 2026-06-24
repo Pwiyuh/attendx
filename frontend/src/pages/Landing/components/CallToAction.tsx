@@ -16,12 +16,13 @@ const CallToAction: React.FC = () => {
         
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link 
+            id="cta-get-started-btn"
             to="/get-started" 
             className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-galaxy-900 font-bold text-lg hover:bg-galaxy-light transition-colors flex items-center justify-center group"
           >
             Get Started <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <button className="w-full sm:w-auto px-8 py-4 rounded-full border border-white/20 text-white font-bold text-lg hover:bg-white/10 transition-colors backdrop-blur-md">
+          <button id="cta-talk-sales-btn" className="w-full sm:w-auto px-8 py-4 rounded-full border border-white/20 text-white font-bold text-lg hover:bg-white/10 transition-colors backdrop-blur-md">
             Talk to Sales
           </button>
         </div>

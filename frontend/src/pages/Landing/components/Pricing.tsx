@@ -92,6 +92,7 @@ const Pricing: React.FC = () => {
               </ul>
               
               <Link 
+                id={`pricing-plan-${plan.name.toLowerCase()}-btn`}
                 to="/get-started"
                 className={`w-full py-3 px-6 rounded-full text-center font-semibold transition-all ${
                   plan.highlighted 

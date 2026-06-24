@@ -71,7 +71,7 @@ const CommunityHub: React.FC = () => {
       ]);
       setPosts(postsRes.data.posts);
       setPulse(pulseRes.data);
-    } catch (error) {
+    } catch (error: any) {
       const errMsg = error.response?.data?.detail || error.message || String(error);
       console.error('Failed to load community data:', errMsg);
       showToast('error', `Failed to sync: ${errMsg}`);

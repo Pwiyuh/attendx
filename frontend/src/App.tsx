@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { ToastProvider } from './context/ToastContext';
 import Login from './pages/Login/Login';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
@@ -58,10 +59,12 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <BrandingProvider>
         <ToastProvider>
           <GalaxyBackground />
           <Routes>
             <Route path="/" element={<AuthRedirect />} />
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/get-started" element={<GetStartedRedirect />} />
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
@@ -132,6 +135,7 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ToastProvider>
+        </BrandingProvider>
       </AuthProvider>
     </BrowserRouter>
   );

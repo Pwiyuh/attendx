@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Layout.module.scss';
 import classNames from 'classnames';
 import { useAuth } from '../../context/AuthContext';
+import { useBranding } from '../../context/BrandingContext';
 // Button import removed — Layout uses native <button> elements
 import {
   LayoutDashboard, Users, BookOpen, GraduationCap, ClipboardList,
@@ -17,9 +18,8 @@ interface NavItem {
 
 const navConfig: Record<string, NavItem[]> = {
   teacher: [
-    { label: 'Dashboard', path: '/teacher', icon: <LayoutDashboard size={18} /> },
+    { label: 'Mark Attendance', path: '/teacher', icon: <ClipboardList size={18} /> },
     { label: 'Analysis Board', path: '/teacher/analytics', icon: <PieChart size={18} /> },
-    { label: 'Mark Attendance', path: '/teacher/attendance', icon: <ClipboardList size={18} /> },
     { label: 'Academic Performance', path: '/teacher/marks', icon: <BookOpen size={18} /> },
     { label: 'Community Hub', path: '/community', icon: <MessageSquare size={18} /> },
     { label: 'Leave Requests', path: '/leave', icon: <CalendarClock size={18} /> },
@@ -50,6 +50,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, title }) => {
   const { user, logout } = useAuth();
+  const branding = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -73,11 +74,15 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
         <div className={styles.logo}>
           {!collapsed && (
             <>
-              <h1>AttendX</h1>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl.startsWith('http') ? branding.logoUrl : `http://localhost:8000${branding.logoUrl}`} alt={branding.schoolName} style={{ height: 32, objectFit: 'contain', maxWidth: '100%' }} />
+              ) : (
+                <h1>{branding.schoolName}</h1>
+              )}
               <div className={styles.subtitle}>Attendance System</div>
             </>
           )}
-          {collapsed && <span className={styles.logoIcon}>AX</span>}
+          {collapsed && <span className={styles.logoIcon}>{branding.schoolName.substring(0, 2).toUpperCase()}</span>}
         </div>
 
         {/* Toggle Button */}

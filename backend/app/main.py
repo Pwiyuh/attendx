@@ -1,15 +1,20 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routes import auth, teacher, student, admin, onboarding, leave, marks, performance, analytics, community
+from app.routes import auth, teacher, student, admin, onboarding, leave, marks, performance, analytics, community, accreditation
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: create all tables
     await init_db()
+    os.makedirs("static/logos", exist_ok=True)
+    os.makedirs("static/favicons", exist_ok=True)
     yield
     # Shutdown: nothing special needed
 
@@ -30,6 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Register routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(teacher.router, prefix="/api")
@@ -41,6 +49,7 @@ app.include_router(marks.router, prefix="/api")
 app.include_router(performance.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(community.router, prefix="/api")
+app.include_router(accreditation.router, prefix="/api")
 
 
 @app.get("/api/health")

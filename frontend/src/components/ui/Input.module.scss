@@ -40,7 +40,7 @@
     border-color: $accent-danger;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba($accent-danger, 0.15);
+      box-shadow: 0 0 0 3px var(--accent-danger-dim);
     }
   }
 }

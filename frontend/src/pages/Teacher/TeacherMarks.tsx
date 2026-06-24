@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 import { useToast } from '../../context/ToastContext';
+import StudentAnalyticsDrawer from '../../components/admin/StudentAnalyticsDrawer';
 import { 
   getClasses, getSubjects, teacherGetClassSubjects, getStudentsBySection,
   getAssessmentTypes, createAssessment, getAssessments, getAssessmentMarks, 
@@ -13,9 +14,8 @@ import {
 } from '../../services/api';
 import { 
   Plus, Save, AlertCircle, CheckCircle2, Lock, Unlock, 
-  FileEdit, BarChart3, Users, Target, TrendingUp, Filter, Calendar
+  FileEdit, BarChart3, Users, Target, TrendingUp, Calendar
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 interface Student {
   id: number;
@@ -46,14 +46,31 @@ interface MarkEntry {
 
 type MarksMap = Record<number, MarkEntry>;
 
+interface Section {
+  id: number;
+  class_id: number;
+  name: string;
+}
+
+interface Class {
+  id: number;
+  name: string;
+  sections: Section[];
+}
+
+interface Subject {
+  id: number;
+  name: string;
+}
+
 const TeacherMarks: React.FC = () => {
-  const { user } = useAuth();
   const { showToast } = useToast();
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   
   // Selection State
-  const [classes, setClasses] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [classSubjects, setClassSubjects] = useState<any[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classSubjects, setClassSubjects] = useState<Subject[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -267,7 +284,7 @@ const TeacherMarks: React.FC = () => {
   };
 
   // Grid Navigation Logic
-  const handleKeyDown = (e: React.KeyboardEvent, studentId: number, index: number) => {
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const nextIndex = e.shiftKey ? index - 1 : index + 1;
@@ -473,7 +490,16 @@ const TeacherMarks: React.FC = () => {
                           return (
                             <tr key={student.id}>
                               <td>{student.register_number}</td>
-                              <td>{student.name}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedStudentId(student.id)}
+                                  className={styles.studentLink}
+                                  title="Click to view analytics"
+                                >
+                                  {student.name}
+                                </button>
+                              </td>
                               <td>
                                 <select 
                                   className={styles.statusSelect}
@@ -489,12 +515,12 @@ const TeacherMarks: React.FC = () => {
                               </td>
                               <td>
                                 <input
-                                  ref={el => inputRefs.current[`${student.id}`] = el}
+                                  ref={el => { inputRefs.current[`${student.id}`] = el; }}
                                   type="number"
                                   className={`${styles.markInput} ${isError ? styles.error : ''}`}
                                   value={entry.marks_obtained ?? ''}
                                   onChange={e => handleMarkChange(student.id, 'marks_obtained', e.target.value === '' ? null : Number(e.target.value))}
-                                  onKeyDown={e => handleKeyDown(e, student.id, idx)}
+                                  onKeyDown={e => handleKeyDown(e, idx)}
                                   disabled={entry.status !== 'submitted' || selectedAssessment.status === 'locked'}
                                   placeholder="--"
                                   step="0.5"
@@ -565,6 +591,10 @@ const TeacherMarks: React.FC = () => {
           </div>
         )}
       </div>
+      <StudentAnalyticsDrawer
+        studentId={selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+      />
     </Layout>
   );
 };

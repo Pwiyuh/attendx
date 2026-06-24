@@ -54,7 +54,14 @@ async def generate_student_full_profile(db: AsyncSession, student_id: int) -> Di
     
     config = await db.scalar(select(PerformanceConfig).where(PerformanceConfig.is_active == True))
     if not config:
-        config = PerformanceConfig()
+        config = PerformanceConfig(
+            high_performance_threshold=75.0,
+            low_performance_threshold=40.0,
+            high_attendance_threshold=80.0,
+            low_attendance_threshold=60.0,
+            trend_window_assessments=3,
+            is_active=True
+        )
         
     # Marks Data
     marks_query = (

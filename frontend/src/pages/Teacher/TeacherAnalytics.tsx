@@ -12,6 +12,7 @@ import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 import Table from '../../components/ui/Table';
 import { useToast } from '../../context/ToastContext';
+import StudentAnalyticsDrawer from '../../components/admin/StudentAnalyticsDrawer';
 import styles from './TeacherAnalytics.module.scss';
 
 interface SectionData {
@@ -73,6 +74,7 @@ const TeacherAnalytics: React.FC = () => {
   const [perfFilter, setPerfFilter] = useState<'all' | 'high_risk' | 'declining' | 'learning_gap'>('all');
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
 
   const { showToast } = useToast();
 
@@ -432,6 +434,8 @@ const TeacherAnalytics: React.FC = () => {
                   columns={columns} 
                   data={filteredStudents} 
                   emptyMessage="No student data available." 
+                  onRowClick={(item) => setSelectedStudentId(item.student_id)}
+                  rowClassName={() => styles.clickableRow}
                 />
               </CardBody>
             </Card>
@@ -496,14 +500,18 @@ const TeacherAnalytics: React.FC = () => {
                   columns={perfColumns} 
                   data={filteredPerformanceStudents} 
                   emptyMessage="No performance data available." 
-                  onRowClick={(item) => showToast('info', `Details for ${item.name} coming soon!`)}
-                  rowClassName={(item) => item.risk_level === 'High' ? styles.highRiskRow : undefined}
+                  onRowClick={(item) => setSelectedStudentId(item.student_id)}
+                  rowClassName={(item) => item.risk_level === 'High' ? `${styles.highRiskRow} ${styles.clickableRow}` : styles.clickableRow}
                 />
               </CardBody>
             </Card>
           </>
         )}
       </div>
+      <StudentAnalyticsDrawer
+        studentId={selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+      />
     </Layout>
   );
 };

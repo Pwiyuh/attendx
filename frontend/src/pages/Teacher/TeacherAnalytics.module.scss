@@ -155,3 +155,11 @@
   background: rgba(239, 68, 68, 0.05);
   border-left: 2px solid #ef4444;
 }
+
+.clickableRow {
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.08);
+  }
+}

@@ -135,6 +135,7 @@ async def seed():
                     register_number=reg,
                     class_id=section.class_id,
                     section_id=section.id,
+                    parent_email=f"{fname.lower()}.{lname.lower()}_parent@example.com",
                     password_hash=hash_password("student123"),
                 )
                 db.add(s)
@@ -173,20 +174,32 @@ async def seed():
             db.add_all(attendance_objects[i:i + batch_size])
         await db.commit()
 
+        # ── Seed Student Streaks ─────────────────────────────
+        print("Calculating historical attendance streaks for seeded students...")
+        from app.services.streak_service import recalculate_student_streak_history
+        
+        for idx, student in enumerate(students):
+            await recalculate_student_streak_history(db, student.id)
+            if (idx + 1) % 200 == 0 or (idx + 1) == len(students):
+                print(f"  Processed streaks for {idx + 1}/{len(students)} students...")
+        
+        print("Streak calculation complete.")
+
+
         print("=" * 50)
         print("  SEED COMPLETE")
         print("=" * 50)
         print()
-        print(f"  ✓ {len(classes)} classes (3 branches × 3 years)")
+        print(f"  * {len(classes)} classes (3 branches x 3 years)")
         print(f"     Branches: BCA, BBA, BCOM")
         print(f"     Years: 1st Year, 2nd Year, 3rd Year")
-        print(f"  ✓ {len(sections)} sections (A, B, C per class)")
-        print(f"  ✓ {len(subjects)} subjects")
-        print(f"  ✓ {len(students)} students (80 per section)")
-        print(f"  ✓ {len(attendance_objects)} attendance records")
+        print(f"  * {len(sections)} sections (A, B, C per class)")
+        print(f"  * {len(subjects)} subjects")
+        print(f"  * {len(students)} students (80 per section)")
+        print(f"  * {len(attendance_objects)} attendance records")
         print()
         print("  Login Credentials:")
-        print("  ─────────────────────────────────────────")
+        print("  -----------------------------------------")
         print("  Admin:   admin@college.edu / admin123")
         print("  Teacher: rajesh@college.edu / teacher123")
         print("  Student: REG0001 / student123")

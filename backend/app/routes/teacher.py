@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
@@ -10,8 +10,9 @@ from app.database import get_db
 from app.schemas.schemas import (
     BulkAttendanceRequest, AttendanceRecordOut, SubjectCreate, SubjectUpdate,
     StudentOut, PaginatedStudents, ClassWithSections, SubjectOut,
-    ClassAnalyticsResponse
+    ClassAnalyticsResponse, NotifyAbsenteesRequest, NotifyAbsenteesResponse
 )
+from app.services.notification import NotificationService
 from app.services.service import (
     get_students_by_section, submit_bulk_attendance,
     get_attendance_for_date, get_all_classes,
@@ -85,6 +86,7 @@ async def list_students(
 @router.post("/attendance/bulk")
 async def bulk_attendance(
     request: BulkAttendanceRequest,
+    background_tasks: BackgroundTasks,
     _user: dict = Depends(require_role("teacher", "admin")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -95,7 +97,13 @@ async def bulk_attendance(
         subject_id=request.subject_id,
         att_date=request.date,
         records=[r.model_dump() for r in request.attendance],
+        performed_by=int(_user["sub"]),
     )
+
+    # Enqueue streak reconciliation for all students in this section for this date
+    from app.services.streak_service import reconcile_section_streaks_background
+    background_tasks.add_task(reconcile_section_streaks_background, request.section_id, request.date)
+
     return {"message": f"Attendance submitted for {count} students", "count": count}
 
 
@@ -110,6 +118,17 @@ async def get_attendance(
 ):
     records = await get_attendance_for_date(db, class_id, section_id, subject_id, date)
     return records
+
+
+@router.post("/attendance/notify", response_model=NotifyAbsenteesResponse)
+async def notify_absentees(
+    request: NotifyAbsenteesRequest,
+    _user: dict = Depends(require_role("teacher", "admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    return await NotificationService.notify_absentees(
+        db, request.subject_id, request.section_id, request.date
+    )
 
 
 @router.get("/attendance/export")

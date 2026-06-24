@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 from app.database import get_db
 from app.services.analytics_service import generate_student_full_profile, generate_teacher_overview
 from app.utils.auth import get_current_user, require_role
-from app.models.models import Timetable, Student
+from app.models.models import Timetable, Student, Section
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -26,13 +26,23 @@ async def get_student_full_profile_route(
         if not student:
             raise HTTPException(status_code=404, detail="Student not found")
         
-        tt_query = select(Timetable.id).where(
-            Timetable.teacher_id == user_id, 
-            Timetable.section_id == student.section_id
-        ).limit(1)
-        tt_res = await db.execute(tt_query)
-        if not tt_res.scalar_one_or_none():
-            raise HTTPException(status_code=403, detail="Not authorized to view this student")
+        # Check if teacher is class teacher of the student's section
+        sec_query = select(Section.id).where(
+            Section.id == student.section_id,
+            Section.class_teacher_id == user_id
+        )
+        sec_res = await db.execute(sec_query)
+        is_class_teacher = sec_res.scalar_one_or_none() is not None
+        
+        if not is_class_teacher:
+            # Check if teacher teaches a subject in this section
+            tt_query = select(Timetable.id).where(
+                Timetable.teacher_id == user_id, 
+                Timetable.section_id == student.section_id
+            ).limit(1)
+            tt_res = await db.execute(tt_query)
+            if not tt_res.scalar_one_or_none():
+                raise HTTPException(status_code=403, detail="Not authorized to view this student")
             
     result = await generate_student_full_profile(db, student_id)
     if "error" in result:

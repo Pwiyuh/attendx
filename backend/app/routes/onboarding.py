@@ -6,6 +6,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.models.models import SchoolSettings, Teacher
+from app.schemas.schemas import SchoolSettingsOut
 from app.utils.auth import hash_password, create_access_token
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
@@ -21,6 +22,13 @@ class SetupRequest(BaseModel):
 
 class SetupStatusResponse(BaseModel):
     setup_completed: bool
+
+
+@router.get("/settings", response_model=SchoolSettingsOut)
+async def get_public_settings(db: AsyncSession = Depends(get_db)):
+    """Public endpoint to get branding settings."""
+    from app.services.branding_service import BrandingService
+    return await BrandingService.get_settings(db)
 
 
 @router.get("/status", response_model=SetupStatusResponse)

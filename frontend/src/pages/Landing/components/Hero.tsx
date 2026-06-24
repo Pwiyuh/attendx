@@ -19,10 +19,10 @@ const Hero: React.FC = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Link to="/get-started" className="w-full sm:w-auto px-8 py-4 flex items-center justify-center text-base font-semibold rounded-full bg-galaxy-purple hover:bg-galaxy-blue text-white transition-all shadow-[0_0_30px_rgba(109,40,217,0.5)] group">
+            <Link id="hero-get-started-btn" to="/get-started" className="w-full sm:w-auto px-8 py-4 flex items-center justify-center text-base font-semibold rounded-full bg-galaxy-purple hover:bg-galaxy-blue text-white transition-all shadow-[0_0_30px_rgba(109,40,217,0.5)] group">
               Get Started <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="w-full sm:w-auto px-8 py-4 flex items-center justify-center text-base font-semibold text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors group backdrop-blur-md">
+            <button id="hero-book-demo-btn" className="w-full sm:w-auto px-8 py-4 flex items-center justify-center text-base font-semibold text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors group backdrop-blur-md">
               <PlayCircle className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" /> Book Demo
             </button>
           </div>

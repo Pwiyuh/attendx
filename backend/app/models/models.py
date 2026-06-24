@@ -159,10 +159,6 @@ class DailySnapshot(Base):
     attendance_rate = Column(Integer, nullable=False) # Percentage stored as integer
     metadata_ = Column("metadata", JSON, nullable=True) # Detailed breakdown
 
-    __table_args__ = (
-        Index("ix_daily_snapshots_date", "date"),
-    )
-
 
 # ── Users ──────────────────────────────────────────────────────────
 
@@ -182,6 +178,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
     register_number = Column(String(50), nullable=False, unique=True, index=True)
+    parent_email = Column(String(255), nullable=True)
     class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
     section_id = Column(Integer, ForeignKey("sections.id", ondelete="CASCADE"), nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -189,6 +186,7 @@ class Student(Base):
 
     section = relationship("Section", back_populates="students")
     attendance_records = relationship("Attendance", back_populates="student", lazy="selectin")
+    streak_record = relationship("StudentStreak", back_populates="student", uselist=False, cascade="all, delete-orphan", lazy="selectin")
 
     __table_args__ = (
         Index("ix_students_class_section", "class_id", "section_id"),
@@ -275,6 +273,12 @@ class SchoolSettings(Base):
     school_name = Column(String(200), nullable=False)
     logo_url = Column(String(500), nullable=True)
     setup_completed = Column(Boolean, default=False, nullable=False)
+    theme_name = Column(String(50), nullable=False, default="dark-purple")
+    favicon_url = Column(String(500), nullable=True)
+    branding_version = Column(Integer, nullable=False, default=1)
+    primary_color = Column(String(20), nullable=True)
+    secondary_color = Column(String(20), nullable=True)
+    accent_color = Column(String(20), nullable=True)
 
 
 # ── Performance & Marks ────────────────────────────────────────────
@@ -348,6 +352,28 @@ class PerformanceConfig(Base):
     is_active = Column(Boolean, nullable=False, default=True)
 
 
+# ── Notifications ──────────────────────────────────────────────────
+
+class NotificationLog(Base):
+    """Log of all notifications sent, primarily to prevent duplicates."""
+    __tablename__ = "notification_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    notification_type = Column(String(50), nullable=False)  # e.g., 'absent'
+    reference_date = Column(Date, nullable=False)  # The date this notification applies to
+    sent_at = Column(DateTime, default=lambda: datetime.utcnow(), nullable=False)
+    recipient_email = Column(String(255), nullable=False)
+
+    student = relationship("Student")
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "notification_type", "reference_date", name="uq_student_notif_date"),
+        Index("ix_notification_logs_student_id", "student_id"),
+        Index("ix_notification_logs_reference_date", "reference_date"),
+    )
+
+
 # ── Community Hub ──────────────────────────────────────────────────
 
 class CommunityPost(Base):
@@ -399,3 +425,20 @@ class CommunityReaction(Base):
     __table_args__ = (
         UniqueConstraint("post_id", "user_id", "user_role", name="uq_post_user_reaction"),
     )
+
+
+# ── Student Streaks ────────────────────────────────────────────────
+
+class StudentStreak(Base):
+    __tablename__ = "student_streaks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    current_streak = Column(Integer, nullable=False, default=0)
+    longest_streak = Column(Integer, nullable=False, default=0)
+    freeze_tokens = Column(Integer, nullable=False, default=0)
+    perfect_days_count = Column(Integer, nullable=False, default=0)
+    attendance_points = Column(Integer, nullable=False, default=0)
+    last_processed_date = Column(Date, nullable=True)
+
+    student = relationship("Student", back_populates="streak_record")

@@ -52,6 +52,25 @@ class ClassWithSections(BaseModel):
         from_attributes = True
 
 
+class ClassSummaryOut(BaseModel):
+    id: int
+    name: str
+    student_count: int
+    section_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class SectionSummaryOut(BaseModel):
+    id: int
+    name: str
+    student_count: int
+
+    class Config:
+        from_attributes = True
+
+
 # ── Subjects ──────────────────────────────────────────────────────
 
 class SubjectOut(BaseModel):
@@ -93,6 +112,7 @@ class StudentOut(BaseModel):
     id: int
     name: str
     register_number: str
+    parent_email: Optional[str] = None
     class_id: int
     section_id: int
 
@@ -103,9 +123,23 @@ class StudentOut(BaseModel):
 class StudentCreate(BaseModel):
     name: str
     register_number: str
+    parent_email: Optional[str] = None
     class_id: int
     section_id: int
     password: str
+
+
+class StudentStreakOut(BaseModel):
+    student_id: int
+    current_streak: int
+    longest_streak: int
+    freeze_tokens: int
+    perfect_days_count: int
+    attendance_points: int
+    last_processed_date: Optional[date] = None
+
+    class Config:
+        from_attributes = True
 
 
 # ── Teachers ──────────────────────────────────────────────────────
@@ -475,4 +509,41 @@ class CommunityPulseResponse(BaseModel):
     active_discussions_count: int
     top_performing_section: Optional[str] = None
     last_updated: datetime
+
+
+# ── Notifications ─────────────────────────────────────────────────
+
+class NotificationStatusResponse(BaseModel):
+    student_id: int
+    student_name: str
+    parent_email: Optional[str] = None
+    notified_today: bool
+
+
+class NotifyAbsenteesRequest(BaseModel):
+    subject_id: int
+    date: date
+    section_id: int
+
+
+class NotifyAbsenteesResponse(BaseModel):
+    success: bool
+    notified_count: int
+    skipped_count: int
+    errors: Optional[List[str]] = None
+
+
+# ── Branding ──────────────────────────────────────────────────────
+class SchoolSettingsOut(BaseModel):
+    school_name: str
+    logo_url: Optional[str] = None
+    favicon_url: Optional[str] = None
+    theme_name: str = "dark-purple"
+    branding_version: int = 1
+    class Config:
+        from_attributes = True
+
+class SchoolSettingsUpdate(BaseModel):
+    school_name: str
+    theme_name: str = "dark-purple"
 

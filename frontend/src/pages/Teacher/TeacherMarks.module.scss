@@ -249,3 +249,19 @@
     margin-bottom: 0.5rem;
   }
 }
+
+.studentLink {
+  background: none;
+  border: none;
+  color: v.$accent-primary;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+  text-align: left;
+  font-size: inherit;
+  
+  &:hover {
+    color: v.$accent-primary-hover;
+    text-decoration: underline;
+  }
+}

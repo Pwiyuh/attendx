@@ -53,9 +53,17 @@ export const getStudentAttendance = (studentId: number) =>
   api.get(`/student/${studentId}/attendance`);
 export const getStudentHistory = (studentId: number, startDate: string, endDate: string) =>
   api.get(`/student/${studentId}/history`, { params: { start_date: startDate, end_date: endDate } });
+export const getStudentStreak = (studentId: number) =>
+  api.get(`/student/${studentId}/streak`);
+export const getStudentLeaderboard = (studentId: number) =>
+  api.get(`/student/${studentId}/leaderboard`);
+export const purchaseStreakShield = (studentId: number) =>
+  api.post(`/student/${studentId}/purchase-shield`);
 
 // Admin
-export const adminGetStudents = (page = 1) => api.get('/admin/students', { params: { page, per_page: 50 } });
+export const adminGetStudents = (page = 1, classId?: number, sectionId?: number) => api.get('/admin/students', { params: { page, per_page: 50, class_id: classId, section_id: sectionId } });
+export const adminGetClassSummaries = () => api.get('/admin/classes/summary');
+export const adminGetClassSections = (classId: number) => api.get(`/admin/classes/${classId}/sections`);
 export const adminCreateStudent = (data: unknown) => api.post('/admin/students', data);
 export const adminDeleteStudent = (id: number) => api.delete(`/admin/students/${id}`);
 
@@ -86,10 +94,38 @@ export const adminRemoveSubjectFromClass = (classId: number, subjectId: number) 
 export const teacherCreateSubject = (data: unknown) => api.post('/teacher/subjects', data);
 export const teacherUpdateSubject = (id: number, data: unknown) => api.put(`/teacher/subjects/${id}`, data);
 export const teacherGetClassSubjects = (classId: number) => api.get(`/teacher/classes/${classId}/subjects`);
+export const teacherNotifyAbsentees = (data: { subject_id: number, date: string, section_id: number }) => api.post('/teacher/attendance/notify', data);
+
+// Branding
+export const getBrandingSettings = () => api.get('/onboarding/settings');
+export const updateBrandingSettings = (data: { school_name: string; theme_name: string }) => api.put('/admin/settings', data);
+export const uploadBrandingLogo = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/admin/settings/logo', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const uploadBrandingFavicon = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/admin/settings/favicon', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+};
+export const resetBranding = () => api.post('/admin/settings/reset');
 
 // Exports
 export const exportAttendanceApi = (params: { class_id?: number, section_id?: number, subject_id?: number, start_date: string, end_date: string }, role: 'admin' | 'teacher') =>
   api.get(`/${role}/attendance/export`, { params, responseType: 'blob' });
+
+export const adminGetCumulativeReport = (params: { class_id: number; section_id: number; start_date: string; end_date: string; format?: string }) =>
+  api.get('/accreditation/reports/cumulative-attendance', { params, responseType: 'blob' });
+
+export const adminGetShortageReport = (params: { class_id: number; section_id: number; start_date: string; end_date: string; format?: string }) =>
+  api.get('/accreditation/reports/attendance-shortage', { params, responseType: 'blob' });
+
+export const adminGetRegisterReport = (params: { class_id: number; section_id: number; subject_id: number; start_date: string; end_date: string; format?: string }) =>
+  api.get('/accreditation/reports/attendance-register', { params, responseType: 'blob' });
+
+export const adminGetAuditTrailReport = (params: { start_date: string; end_date: string; format?: string }) =>
+  api.get('/accreditation/reports/audit-trail', { params, responseType: 'blob' });
 
 // Leave Management
 export const requestLeave = (data: { start_date: string; end_date: string; reason: string }) =>

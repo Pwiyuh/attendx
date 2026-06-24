@@ -33,7 +33,7 @@
 
   &:hover {
     color: $text-secondary;
-    background: rgba($bg-muted, 0.5);
+    background: rgba(39, 39, 42, 0.2);
   }
 
   &.activeTab {
@@ -64,3 +64,436 @@
   align-items: end;
   flex-wrap: wrap;
 }
+
+/* ── Branding Tab ──────────────────────────────────────────────── */
+.brandingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-6;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.brandingSection {
+  h3 {
+    font-size: $font-md;
+    font-weight: $weight-semibold;
+    color: $text-primary;
+    margin-bottom: $space-2;
+  }
+
+  p {
+    font-size: $font-sm;
+    color: $text-muted;
+    margin-bottom: $space-4;
+  }
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: $space-3;
+}
+
+.themeCard {
+  position: relative;
+  border: 2px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-4;
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-2;
+  background: $bg-card;
+
+  &:hover {
+    border-color: $border-hover;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &.activeTheme {
+    border-color: $accent-primary;
+    box-shadow: $shadow-glow;
+  }
+}
+
+.themePreview {
+  width: 100%;
+  height: 40px;
+  border-radius: $radius-md;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+
+  span {
+    flex: 1;
+    display: block;
+  }
+}
+
+.themeLabel {
+  font-size: $font-xs;
+  font-weight: $weight-medium;
+  color: $text-secondary;
+  text-align: center;
+}
+
+.themeCheck {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: $radius-full;
+  background: $accent-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.uploadZone {
+  border: 2px dashed $border-color;
+  border-radius: $radius-lg;
+  padding: $space-6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-3;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-height: 140px;
+  background: rgba(0, 0, 0, 0.1);
+
+  &:hover,
+  &.dragOver {
+    border-color: $accent-primary;
+    background: $accent-primary-dim;
+  }
+
+  svg {
+    color: $text-muted;
+  }
+
+  p {
+    font-size: $font-sm;
+    color: $text-muted;
+    margin: 0;
+    text-align: center;
+  }
+
+  span {
+    font-size: $font-xs;
+    color: $text-placeholder;
+  }
+}
+
+.uploadPreview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-4;
+  background: rgba(0, 0, 0, 0.1);
+
+  img {
+    max-height: 80px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  button {
+    position: absolute;
+    top: $space-2;
+    right: $space-2;
+  }
+}
+
+.brandingActions {
+  display: flex;
+  gap: $space-3;
+  justify-content: flex-end;
+  margin-top: $space-6;
+  padding-top: $space-6;
+  border-top: 1px solid $border-color;
+}
+
+/* ── Student 3-level Flow ────────────────────────────────────── */
+.classGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: $space-4;
+  margin-top: $space-4;
+}
+
+.classCard {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-4;
+  cursor: pointer;
+  transition: all $transition-fast;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  &:hover {
+    border-color: $accent-primary;
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+
+  h3 {
+    font-size: $font-lg;
+    font-weight: $weight-semibold;
+    color: $text-primary;
+    margin: 0;
+  }
+
+  .stats {
+    display: flex;
+    gap: $space-4;
+    font-size: $font-sm;
+    color: $text-muted;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: $space-1;
+    }
+  }
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  margin-bottom: $space-4;
+  font-size: $font-sm;
+  color: $text-muted;
+
+  button {
+    background: none;
+    border: none;
+    color: $accent-primary;
+    cursor: pointer;
+    padding: 0;
+    font-weight: $weight-medium;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  span.separator {
+    color: $text-placeholder;
+  }
+
+  span.current {
+    color: $text-primary;
+    font-weight: $weight-semibold;
+  }
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2;
+  background: none;
+  border: none;
+  color: $text-secondary;
+  cursor: pointer;
+  font-size: $font-sm;
+  font-weight: $weight-medium;
+  padding: $space-2 0;
+  margin-bottom: $space-2;
+
+  &:hover {
+    color: $text-primary;
+  }
+}
+
+/* ── Accreditation Reports Tab ───────────────────────────────── */
+.reportsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: $space-4;
+  margin-bottom: $space-6;
+}
+
+.reportCard {
+  background: $bg-card;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  cursor: pointer;
+  transition: all $transition-base;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+  text-align: left;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &.activeReport {
+    border-color: $accent-primary;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+  }
+
+  .iconWrapper {
+    width: 42px;
+    height: 42px;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.05);
+    color: $accent-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h3 {
+    font-size: $font-sm;
+    font-weight: $weight-semibold;
+    color: $text-primary;
+    margin: 0;
+  }
+
+  p {
+    font-size: $font-xs;
+    color: $text-muted;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.filterPanel {
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $radius-lg;
+  padding: $space-5;
+  margin-bottom: $space-6;
+}
+
+.filterHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-sm;
+  font-weight: $weight-semibold;
+  color: $text-primary;
+  margin-bottom: $space-4;
+  border-bottom: 1px solid $border-color;
+  padding-bottom: $space-2;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $space-4;
+  margin-bottom: $space-5;
+}
+
+.filterItem {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+
+  label {
+    font-size: $font-xs;
+    font-weight: $weight-semibold;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  select, input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #09090b;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    color: $text-primary;
+    font-size: $font-sm;
+    outline: none;
+    transition: all $transition-fast;
+
+    &:focus {
+      border-color: $accent-primary;
+    }
+  }
+}
+
+.formatToggleGroup {
+  display: flex;
+  gap: $space-2;
+
+  button {
+    flex: 1;
+    padding: 8px 12px;
+    background: #09090b;
+    border: 1px solid $border-color;
+    color: $text-secondary;
+    border-radius: $radius-md;
+    cursor: pointer;
+    font-size: $font-sm;
+    font-weight: $weight-medium;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: $text-primary;
+    }
+
+    &.activeFormat {
+      background: $accent-primary;
+      border-color: $accent-primary;
+      color: #fff;
+    }
+  }
+}
+
+.complianceCard {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: $radius-lg;
+  padding: $space-4;
+  display: flex;
+  gap: $space-3;
+  align-items: flex-start;
+  margin-bottom: $space-6;
+
+  .complianceIcon {
+    color: $accent-primary;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .complianceContent {
+    h4 {
+      font-size: $font-sm;
+      font-weight: $weight-semibold;
+      color: $text-primary;
+      margin: 0 0 4px 0;
+    }
+    p {
+      font-size: $font-xs;
+      color: $text-muted;
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+}
+

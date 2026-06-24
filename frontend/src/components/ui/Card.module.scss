@@ -15,7 +15,7 @@
 
   &.glow:hover {
     box-shadow: $shadow-glow;
-    border-color: rgba($accent-primary, 0.3);
+    border-color: var(--accent-primary-dim);
   }
 }
 

@@ -171,8 +171,8 @@ async def main():
                     else:
                         await db.execute(text(
                             """INSERT INTO assessments
-                               (subject_id, class_id, name, max_marks, date, assessment_type_id)
-                               VALUES (:s, :c, :n, :m, :d, :at)"""
+                               (subject_id, class_id, name, max_marks, date, assessment_type_id, status)
+                               VALUES (:s, :c, :n, :m, :d, :at, 'published')"""
                         ), {
                             "s": subject_id, "c": class_id,
                             "n": exam_name, "m": max_marks,
@@ -234,8 +234,8 @@ async def main():
             # Batch insert every 500 records
             if len(marks_batch) >= 500:
                 await db.execute(text(
-                    "INSERT INTO student_marks (student_id, assessment_id, marks_obtained) "
-                    "VALUES (:student_id, :assessment_id, :marks)"
+                    "INSERT INTO student_marks (student_id, assessment_id, marks_obtained, status) "
+                    "VALUES (:student_id, :assessment_id, :marks, 'submitted')"
                 ), marks_batch)
                 await db.commit()
                 total_inserted += len(marks_batch)
@@ -245,8 +245,8 @@ async def main():
         # Insert remaining
         if marks_batch:
             await db.execute(text(
-                "INSERT INTO student_marks (student_id, assessment_id, marks_obtained) "
-                "VALUES (:student_id, :assessment_id, :marks)"
+                "INSERT INTO student_marks (student_id, assessment_id, marks_obtained, status) "
+                "VALUES (:student_id, :assessment_id, :marks, 'submitted')"
             ), marks_batch)
             await db.commit()
             total_inserted += len(marks_batch)

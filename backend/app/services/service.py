@@ -55,11 +55,59 @@ async def get_all_classes(db: AsyncSession) -> List[Class]:
     return result.scalars().all()
 
 
+async def get_class_summaries(db: AsyncSession) -> List[Dict]:
+    query = (
+        select(
+            Class.id,
+            Class.name,
+            func.count(func.distinct(Student.id)).label("student_count"),
+            func.count(func.distinct(Section.id)).label("section_count")
+        )
+        .outerjoin(Section, Section.class_id == Class.id)
+        .outerjoin(Student, Student.class_id == Class.id)
+        .group_by(Class.id)
+        .order_by(Class.name)
+    )
+    result = await db.execute(query)
+    return [
+        {
+            "id": row.id,
+            "name": row.name,
+            "student_count": row.student_count,
+            "section_count": row.section_count
+        }
+        for row in result.all()
+    ]
+
+
 async def get_sections_by_class(db: AsyncSession, class_id: int) -> List[Section]:
     result = await db.execute(
         select(Section).where(Section.class_id == class_id).order_by(Section.name)
     )
     return result.scalars().all()
+
+
+async def get_sections_by_class_with_counts(db: AsyncSession, class_id: int) -> List[Dict]:
+    query = (
+        select(
+            Section.id,
+            Section.name,
+            func.count(Student.id).label("student_count")
+        )
+        .outerjoin(Student, Student.section_id == Section.id)
+        .where(Section.class_id == class_id)
+        .group_by(Section.id)
+        .order_by(Section.name)
+    )
+    result = await db.execute(query)
+    return [
+        {
+            "id": row.id,
+            "name": row.name,
+            "student_count": row.student_count
+        }
+        for row in result.all()
+    ]
 
 
 async def create_class(db: AsyncSession, name: str) -> Class:
@@ -230,8 +278,13 @@ async def get_students_by_section(
     return result.scalars().all(), total
 
 
-async def get_all_students(db: AsyncSession, page: int = 1, per_page: int = 50) -> tuple:
+async def get_all_students(db: AsyncSession, page: int = 1, per_page: int = 50, class_id: Optional[int] = None, section_id: Optional[int] = None) -> tuple:
     base_query = select(Student)
+    if class_id is not None:
+        base_query = base_query.where(Student.class_id == class_id)
+    if section_id is not None:
+        base_query = base_query.where(Student.section_id == section_id)
+
     count_result = await db.execute(select(func.count()).select_from(base_query.subquery()))
     total = count_result.scalar()
     result = await db.execute(
@@ -241,7 +294,8 @@ async def get_all_students(db: AsyncSession, page: int = 1, per_page: int = 50) 
 
 
 async def create_student(db: AsyncSession, name: str, register_number: str,
-                         class_id: int, section_id: int, password: str) -> Student:
+                         class_id: int, section_id: int, password: str,
+                         parent_email: Optional[str] = None) -> Student:
     class_result = await db.execute(select(Class).where(Class.id == class_id))
     if not class_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Class not found")
@@ -263,6 +317,7 @@ async def create_student(db: AsyncSession, name: str, register_number: str,
     student = Student(
         name=name,
         register_number=register_number,
+        parent_email=parent_email,
         class_id=class_id,
         section_id=section_id,
         password_hash=hash_password(password),
@@ -322,7 +377,8 @@ async def delete_teacher(db: AsyncSession, teacher_id: int) -> bool:
 async def submit_bulk_attendance(
     db: AsyncSession, class_id: int, section_id: int,
     subject_id: int, att_date: date,
-    records: List[dict]
+    records: List[dict],
+    performed_by: Optional[int] = None
 ) -> int:
     """
     Bulk upsert attendance records. Uses delete+insert in a single transaction
@@ -334,7 +390,8 @@ async def submit_bulk_attendance(
         raise HTTPException(status_code=400, detail="Attendance list cannot be empty")
 
     subject_result = await db.execute(select(Subject).where(Subject.id == subject_id))
-    if not subject_result.scalar_one_or_none():
+    subject_obj = subject_result.scalar_one_or_none()
+    if not subject_obj:
         raise HTTPException(status_code=404, detail="Subject not found")
 
     section_result = await db.execute(
@@ -342,8 +399,11 @@ async def submit_bulk_attendance(
             and_(Section.id == section_id, Section.class_id == class_id)
         )
     )
-    if not section_result.scalar_one_or_none():
+    section_obj = section_result.scalar_one_or_none()
+    if not section_obj:
         raise HTTPException(status_code=400, detail="Section does not belong to the selected class")
+
+    class_obj = await db.get(Class, class_id)
 
     student_count_result = await db.execute(
         select(func.count())
@@ -362,6 +422,26 @@ async def submit_bulk_attendance(
             status_code=400,
             detail="Attendance contains students outside the selected class or section",
         )
+
+    # For audit logs, fetch existing records before deletion
+    existing_query = select(Attendance).where(
+        and_(
+            Attendance.student_id.in_(student_ids),
+            Attendance.subject_id == subject_id,
+            Attendance.date == att_date,
+        )
+    )
+    existing_result = await db.execute(existing_query)
+    existing_records = {att.student_id: att.status for att in existing_result.scalars().all()}
+
+    # Get student name mappings
+    students_query = select(Student.id, Student.name).where(Student.id.in_(student_ids))
+    students_res = await db.execute(students_query)
+    student_names = {row[0]: row[1] for row in students_res.all()}
+
+    class_name = class_obj.name if class_obj else f"Class #{class_id}"
+    section_name = section_obj.name if section_obj else f"Section #{section_id}"
+    subject_name = subject_obj.name if subject_obj else f"Subject #{subject_id}"
 
     # Delete existing records for this combination — PROTECT on_leave records
     await db.execute(
@@ -400,6 +480,55 @@ async def submit_bulk_attendance(
         if r["student_id"] not in protected_ids
     ]
     db.add_all(attendance_objects)
+
+    # Audit Trail: log action
+    if performed_by is not None:
+        is_update = len(existing_records) > 0
+        
+        # 1. Log bulk action
+        db.add(AuditLog(
+            action="BULK_ATTENDANCE_SUBMIT",
+            entity_type="Attendance",
+            entity_id=subject_id,
+            entity_name=f"{class_name} - {section_name} - {subject_name}",
+            performed_by=performed_by,
+            timestamp=datetime.utcnow(),
+            metadata_={
+                "class_id": class_id,
+                "section_id": section_id,
+                "subject_id": subject_id,
+                "date": att_date.isoformat(),
+                "details": f"Class={class_name}, Section={section_name}, Subject={subject_name}"
+            }
+        ))
+
+        # 2. Log individual updates if it was already marked before
+        if is_update:
+            for r in records:
+                s_id = r["student_id"]
+                new_status = r["status"]
+                old_status_enum = existing_records.get(s_id)
+                old_status = old_status_enum.value if old_status_enum else None
+
+                if old_status and old_status != new_status and old_status != "on_leave":
+                    student_name = student_names.get(s_id, f"Student #{s_id}")
+                    db.add(AuditLog(
+                        action="ATTENDANCE_UPDATED",
+                        entity_type="student_attendance",
+                        entity_id=s_id,
+                        entity_name=student_name,
+                        performed_by=performed_by,
+                        timestamp=datetime.utcnow(),
+                        metadata_={
+                            "student_id": s_id,
+                            "student_name": student_name,
+                            "date": att_date.isoformat(),
+                            "old_status": old_status,
+                            "new_status": new_status,
+                            "details": f"Student: {student_name}, Date: {att_date.isoformat()}, Old: {old_status.capitalize()}, New: {new_status.capitalize()}"
+                        }
+                    ))
+
     await db.commit()
     return len(attendance_objects)
 

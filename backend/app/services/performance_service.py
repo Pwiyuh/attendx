@@ -43,7 +43,14 @@ async def generate_student_analytics(db: AsyncSession, student_id: int) -> Dict[
     # Fetch Config
     config = await db.scalar(select(PerformanceConfig).where(PerformanceConfig.is_active == True))
     if not config:
-        config = PerformanceConfig()
+        config = PerformanceConfig(
+            high_performance_threshold=75.0,
+            low_performance_threshold=40.0,
+            high_attendance_threshold=80.0,
+            low_attendance_threshold=60.0,
+            trend_window_assessments=3,
+            is_active=True
+        )
 
     # Fetch marks and subjects - ONLY PUBLISHED OR LOCKED
     from app.models.models import AssessmentStatus, MarkStatus

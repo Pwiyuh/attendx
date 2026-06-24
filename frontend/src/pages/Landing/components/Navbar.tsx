@@ -28,21 +28,22 @@ const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-galaxy-light to-galaxy-purple">
+            <Link id="nav-logo-link" to="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-galaxy-light to-galaxy-purple">
               AttendX
             </Link>
           </div>
           
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#home" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Home</a>
-            <a href="#features" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">How it Works</a>
-            <a href="#pricing" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Pricing</a>
+            <a id="nav-link-home" href="#home" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Home</a>
+            <a id="nav-link-features" href="#features" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Features</a>
+            <a id="nav-link-how-it-works" href="#how-it-works" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">How it Works</a>
+            <a id="nav-link-pricing" href="#pricing" className="text-sm font-medium text-galaxy-light/80 hover:text-white transition-colors">Pricing</a>
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <button 
+                id="nav-dashboard-btn"
                 onClick={handleDashboardRedirect}
                 className="px-5 py-2.5 text-sm font-medium rounded-full bg-galaxy-purple hover:bg-galaxy-blue text-white transition-all shadow-[0_0_20px_rgba(109,40,217,0.4)]"
               >
@@ -50,10 +51,10 @@ const Navbar: React.FC = () => {
               </button>
             ) : (
               <>
-                <Link to="/login" className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors">
+                <Link id="nav-login-link" to="/login" className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors">
                   Login
                 </Link>
-                <Link to="/get-started" className="px-5 py-2.5 text-sm font-medium rounded-full bg-galaxy-purple hover:bg-galaxy-blue text-white transition-all shadow-[0_0_20px_rgba(109,40,217,0.4)]">
+                <Link id="nav-get-started-btn" to="/get-started" className="px-5 py-2.5 text-sm font-medium rounded-full bg-galaxy-purple hover:bg-galaxy-blue text-white transition-all shadow-[0_0_20px_rgba(109,40,217,0.4)]">
                   Get Started
                 </Link>
               </>
@@ -75,22 +76,22 @@ const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-galaxy-800/95 backdrop-blur-xl border-b border-white/10">
           <div className="px-4 pt-2 pb-6 space-y-1 sm:px-3">
-            <a href="#home" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Home</a>
-            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Features</a>
-            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">How it Works</a>
-            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Pricing</a>
+            <a id="mobile-nav-link-home" href="#home" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Home</a>
+            <a id="mobile-nav-link-features" href="#features" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Features</a>
+            <a id="mobile-nav-link-how-it-works" href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">How it Works</a>
+            <a id="mobile-nav-link-pricing" href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/5">Pricing</a>
             
             <div className="pt-4 flex flex-col gap-3">
               {isAuthenticated ? (
-                 <button onClick={() => { handleDashboardRedirect(); setMobileMenuOpen(false); }} className="w-full text-center px-5 py-3 text-base font-medium rounded-full bg-galaxy-purple text-white">
+                 <button id="mobile-nav-dashboard-btn" onClick={() => { handleDashboardRedirect(); setMobileMenuOpen(false); }} className="w-full text-center px-5 py-3 text-base font-medium rounded-full bg-galaxy-purple text-white">
                   Go to Dashboard
                  </button>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center px-5 py-3 text-base font-medium text-white border border-white/20 rounded-full">
+                  <Link id="mobile-nav-login-link" to="/login" onClick={() => setMobileMenuOpen(false)} className="w-full text-center px-5 py-3 text-base font-medium text-white border border-white/20 rounded-full">
                     Login
                   </Link>
-                  <Link to="/get-started" onClick={() => setMobileMenuOpen(false)} className="w-full text-center px-5 py-3 text-base font-medium rounded-full bg-galaxy-purple text-white">
+                  <Link id="mobile-nav-get-started-btn" to="/get-started" onClick={() => setMobileMenuOpen(false)} className="w-full text-center px-5 py-3 text-base font-medium rounded-full bg-galaxy-purple text-white">
                     Get Started
                   </Link>
                 </>

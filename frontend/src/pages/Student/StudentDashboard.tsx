@@ -5,10 +5,11 @@ import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { ProgressBar, Badge } from '../../components/ui/Extras';
 import Table from '../../components/ui/Table';
 import Select from '../../components/ui/Select';
-import { getStudentAttendance, getStudentHistory, getStudentPerformance } from '../../services/api';
+import { getStudentAttendance, getStudentHistory, getStudentPerformance, getStudentStreak, getStudentLeaderboard, purchaseStreakShield } from '../../services/api';
 import type { StudentPerformanceAnalytics } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid, ReferenceLine } from 'recharts';
+import { Flame, Shield, Trophy } from 'lucide-react';
 
 interface SubjectSummary {
   subject: string;
@@ -81,7 +82,19 @@ const StudentDashboard: React.FC = () => {
   // Customizable Baseline Target
   const [targetPercent, setTargetPercent] = useState<number>(75);
 
-  // Fetch Summary
+  // Streak state
+  const [streakData, setStreakData] = useState<any | null>(null);
+  const [streakLoading, setStreakLoading] = useState<boolean>(true);
+
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(true);
+
+  // Streak Shop state
+  const [purchaseLoading, setPurchaseLoading] = useState<boolean>(false);
+  const [purchaseMessage, setPurchaseMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Fetch Summary, Streak & Leaderboard
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
@@ -94,8 +107,56 @@ const StudentDashboard: React.FC = () => {
         setLoading(false);
       }
     };
+
+    const fetchStreak = async () => {
+      if (!user) return;
+      setStreakLoading(true);
+      try {
+        const res = await getStudentStreak(user.user_id);
+        setStreakData(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setStreakLoading(false);
+      }
+    };
+
+    const fetchLeaderboard = async () => {
+      if (!user) return;
+      setLeaderboardLoading(true);
+      try {
+        const res = await getStudentLeaderboard(user.user_id);
+        setLeaderboard(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLeaderboardLoading(false);
+      }
+    };
+
     fetchData();
+    fetchStreak();
+    fetchLeaderboard();
   }, [user]);
+
+  const handlePurchaseShield = async () => {
+    if (!user) return;
+    setPurchaseLoading(true);
+    setPurchaseMessage(null);
+    try {
+      const res = await purchaseStreakShield(user.user_id);
+      setStreakData(res.data);
+      setPurchaseMessage({ type: 'success', text: 'Shield successfully purchased & activated!' });
+      setTimeout(() => {
+        setPurchaseMessage(null);
+      }, 4000);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.detail || 'Failed to purchase shield.';
+      setPurchaseMessage({ type: 'error', text: errMsg });
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
 
   // Fetch History
   const fetchHistory = useCallback(async () => {
@@ -123,7 +184,7 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchPerformance = async () => {
-      if (!user || activeTab !== 'performance' || performanceData) return;
+      if (!user || performanceData) return;
       setPerformanceLoading(true);
       try {
         const res = await getStudentPerformance(user.user_id);
@@ -135,7 +196,7 @@ const StudentDashboard: React.FC = () => {
       }
     };
     fetchPerformance();
-  }, [activeTab, user, performanceData]);
+  }, [user, performanceData]);
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -261,84 +322,449 @@ const StudentDashboard: React.FC = () => {
 
         {activeTab === 'overview' && data && (
           <>
-            <div className={styles.overallCard}>
-              <div className={styles.ringContainer}>
-                <svg className={styles.ringSvg} viewBox="0 0 128 128">
-                  <circle className={styles.ringBg} cx="64" cy="64" r="56" />
-                  <circle
-                    className={`${styles.ringFill} ${styles[getColorClass(data.overall_percentage)]}`}
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                  />
-                </svg>
-                <div className={styles.ringText}>
-                  <span className={styles.ringPercent}>{data.overall_percentage.toFixed(1)}%</span>
-                  <span className={styles.ringLabel}>Overall</span>
-                </div>
+            <div className={styles.welcomeBanner}>
+              <div className={styles.welcomeText}>
+                <h2>Welcome back, {data.student_name} 👋</h2>
+                <p>Here's a comprehensive look at your attendance, academic grades, and overall academic standing.</p>
               </div>
-              <div className={styles.overallInfo}>
-                <div className={styles.classContext}>
-                  <Badge variant="info">{data.class_name} • {data.section_name}</Badge>
-                  <span className={styles.classTeacher}>
-                    Class Teacher: <strong>{data.class_teacher_name}</strong>
-                  </span>
+              <div className={styles.welcomeMeta}>
+                <div className={styles.metaBadge}>
+                  <span className={styles.metaLabel}>Class & Section</span>
+                  <span className={styles.metaValue}>{data.class_name} • {data.section_name}</span>
                 </div>
-                <h2>Welcome back, {data.student_name}</h2>
-                <p>Here's your attendance summary across all subjects.</p>
-                <div className={styles.overallStats}>
-                  <div className={styles.oStat}>
-                    <div className={styles.oValue}>{data.subjects.length}</div>
-                    <div className={styles.oLabel}>Subjects</div>
-                  </div>
-                  <div className={styles.oStat}>
-                    <div className={styles.oValue}>{totalAttended}</div>
-                    <div className={styles.oLabel}>Attended</div>
-                  </div>
-                  <div className={styles.oStat}>
-                    <div className={styles.oValue}>{totalClasses}</div>
-                    <div className={styles.oLabel}>Total Classes</div>
-                  </div>
+                <div className={styles.metaBadge}>
+                  <span className={styles.metaLabel}>Class Teacher</span>
+                  <span className={styles.metaValue}>{data.class_teacher_name}</span>
                 </div>
               </div>
             </div>
 
-            <Card>
-              <CardHeader title="Subject-wise Attendance" description="Detailed breakdown of your attendance per subject" />
-              <CardBody>
-                <div className={styles.subjectGrid}>
-                  {data.subjects.map((sub) => (
-                    <div key={sub.subject_id} className={styles.subjectCard}>
-                      <div className={styles.subjectHeader}>
-                        <span className={styles.subjectName}>{sub.subject}</span>
-                        <Badge variant={getBadgeVariant(sub.percentage)}>{sub.percentage.toFixed(1)}%</Badge>
+            {/* Streak Showcase Banner */}
+            {!streakLoading && streakData && (
+              <div className={styles.streakContainer}>
+                <div className={styles.streakMainCard}>
+                  <div className={styles.streakIconWrapper}>
+                    <Flame className={styles.fireIcon} size={32} />
+                  </div>
+                  <div className={styles.streakText}>
+                    <span className={styles.streakCount}>{streakData.current_streak} Days</span>
+                    <span className={styles.streakSub}>Active Streak</span>
+                  </div>
+                </div>
+                
+                <div className={styles.streakMetaCard} style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start', justifyContent: 'center' }}>
+                  <div className={styles.metaRow}>
+                    <Trophy className={styles.trophyIcon} size={18} />
+                    <div className={styles.metaText}>
+                      <span className={styles.metaLabel}>Personal Record</span>
+                      <span className={styles.metaValue}>{streakData.longest_streak} Days</span>
+                    </div>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span style={{ fontSize: 18, filter: 'drop-shadow(0 0 5px rgba(168, 85, 247, 0.4))', lineHeight: 1 }}>✨</span>
+                    <div className={styles.metaText}>
+                      <span className={styles.metaLabel}>Attendance Points</span>
+                      <span className={styles.metaValue}>{streakData.attendance_points || 0} Points</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.streakShieldsCard}>
+                  <div className={styles.shieldsHeader}>
+                    <span className={styles.shieldsTitle}>Freeze Shields</span>
+                    <span className={styles.shieldsCountText}>{streakData.freeze_tokens || 0}/3</span>
+                  </div>
+                  <div className={styles.shieldsRow}>
+                    {[1, 2, 3].map((shieldIndex) => {
+                      const isActive = shieldIndex <= (streakData.freeze_tokens || 0);
+                      return (
+                        <div 
+                          key={shieldIndex} 
+                          className={`${styles.shieldContainer} ${isActive ? styles.shieldActive : styles.shieldInactive}`}
+                        >
+                          <Shield size={18} className={styles.shieldIcon} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    className={styles.bannerBuyButton}
+                    onClick={handlePurchaseShield}
+                    disabled={
+                      purchaseLoading ||
+                      (streakData.freeze_tokens || 0) >= 3 ||
+                      (streakData.attendance_points || 0) < 100
+                    }
+                  >
+                    {purchaseLoading ? (
+                      'Buying...'
+                    ) : (streakData.freeze_tokens || 0) >= 3 ? (
+                      'Shields Maxed'
+                    ) : (streakData.attendance_points || 0) < 100 ? (
+                      'Buy Shield (100 pts)'
+                    ) : (
+                      'Buy Shield (100 pts)'
+                    )}
+                  </button>
+
+                  {purchaseMessage && (
+                    <div className={`${styles.bannerShopMessage} ${styles[purchaseMessage.type]}`}>
+                      {purchaseMessage.type === 'success' ? '✅' : '❌'} {purchaseMessage.text}
+                    </div>
+                  )}
+
+                  <span className={styles.shieldsDesc}>
+                    Protects streak on absent days!
+                  </span>
+                </div>
+
+                <div className={styles.streakProgressCard}>
+                  <div className={styles.progressHeader}>
+                    <span className={styles.progressLabel}>Shield Progress</span>
+                    <span className={styles.progressValue}>{streakData.perfect_days_count}/15 Days</span>
+                  </div>
+                  <ProgressBar 
+                    value={((streakData.perfect_days_count || 0) / 15) * 100} 
+                    showValue={false} 
+                  />
+                  <span className={styles.progressSub}>Get 15 perfect attendance days to earn 1 shield</span>
+                </div>
+              </div>
+            )}
+
+            <div className={styles.kpiContainer}>
+              {/* Card 1: Attendance Rate */}
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiTitle}>Attendance Rate</span>
+                  <Badge variant={getBadgeVariant(data.overall_percentage)}>
+                    {data.overall_percentage >= targetPercent ? 'On Track' : 'Below Target'}
+                  </Badge>
+                </div>
+                <div className={styles.kpiBody}>
+                  <div className={styles.ringContainerMini}>
+                    <svg className={styles.ringSvg} viewBox="0 0 128 128">
+                      <circle className={styles.ringBg} cx="64" cy="64" r="56" />
+                      <circle
+                        className={`${styles.ringFill} ${styles[getColorClass(data.overall_percentage)]}`}
+                        cx="64"
+                        cy="64"
+                        r="56"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                      />
+                    </svg>
+                    <div className={styles.ringText}>
+                      <span className={styles.ringPercentMini}>{data.overall_percentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div className={styles.kpiInfo}>
+                    <div className={styles.kpiMainValue}>{data.overall_percentage.toFixed(1)}%</div>
+                    <div className={styles.kpiLabel}>
+                      Attended <strong>{totalAttended}</strong> of <strong>{totalClasses}</strong> classes
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Academic Standing */}
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiTitle}>Academic Standing</span>
+                  {performanceData && (
+                    <Badge variant={performanceData.overall_average >= targetPercent ? 'success' : 'warning'}>
+                      {performanceData.trend === 'improving' ? '🚀 Improving' : performanceData.trend === 'declining' ? '⚠️ Declining' : 'Stable'}
+                    </Badge>
+                  )}
+                  {performanceLoading && <Badge variant="neutral">Loading...</Badge>}
+                  {performanceError && <Badge variant="danger">Error</Badge>}
+                </div>
+                <div className={styles.kpiBody}>
+                  {performanceLoading ? (
+                    <div className={styles.kpiLoading}>Analyzing marks...</div>
+                  ) : performanceError ? (
+                    <div className={styles.kpiError}>
+                      <span className={styles.kpiErrorTitle}>Grades Pending</span>
+                      <span className={styles.kpiErrorDesc}>Published assessment data not available yet.</span>
+                    </div>
+                  ) : performanceData ? (
+                    <>
+                      <div className={styles.ringContainerMini}>
+                        <svg className={styles.ringSvg} viewBox="0 0 128 128">
+                          <circle className={styles.ringBg} cx="64" cy="64" r="56" />
+                          <circle
+                            className={`${styles.ringFill} ${styles[getColorClass(performanceData.overall_average)]}`}
+                            cx="64"
+                            cy="64"
+                            r="56"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={performanceData ? circumference - (performanceData.overall_average / 100) * circumference : 0}
+                          />
+                        </svg>
+                        <div className={styles.ringText}>
+                          <span className={styles.ringPercentMini}>{performanceData.overall_average.toFixed(1)}%</span>
+                        </div>
                       </div>
-                      <ProgressBar value={sub.percentage} />
-                      <div className={styles.teacherAssignment}>
-                        <span className={styles.teacherLabel}>Instructor:</span>
-                        <span className={styles.teacherName}>{sub.teacher_name}</span>
+                      <div className={styles.kpiInfo}>
+                        <div className={styles.kpiMainValue}>{performanceData.overall_average.toFixed(1)}%</div>
+                        <div className={styles.kpiLabel}>
+                          Overall Score Average
+                        </div>
                       </div>
-                      <div className={styles.subjectStats}>
-                        <div className={styles.ssStat}>
-                          <div className={styles.ssValue}>{sub.attended}</div>
-                          <div className={styles.ssLabel}>Attended</div>
-                        </div>
-                        <div className={styles.ssStat}>
-                          <div className={styles.ssValue}>{sub.total - sub.attended}</div>
-                          <div className={styles.ssLabel}>Missed</div>
-                        </div>
-                        <div className={styles.ssStat}>
-                          <div className={styles.ssValue}>{sub.total}</div>
-                          <div className={styles.ssLabel}>Total</div>
-                        </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Card 3: Risk Classification */}
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiTitle}>Academic Risk Status</span>
+                  {performanceData && (
+                    <Badge variant={performanceData.risk_level === 'Low' ? 'success' : performanceData.risk_level === 'Medium' ? 'warning' : 'danger'}>
+                      {performanceData.risk_level} Risk
+                    </Badge>
+                  )}
+                  {performanceLoading && <Badge variant="neutral">Loading...</Badge>}
+                  {performanceError && <Badge variant="danger">Error</Badge>}
+                </div>
+                <div className={styles.kpiBodyNoRing}>
+                  {performanceLoading ? (
+                    <div className={styles.kpiLoading}>Evaluating status...</div>
+                  ) : performanceError ? (
+                    <div className={styles.kpiError}>
+                      <span className={styles.kpiErrorTitle}>Pending Review</span>
+                      <span className={styles.kpiErrorDesc}>Awaiting marks entry to calculate academic risk.</span>
+                    </div>
+                  ) : performanceData ? (
+                    <div className={styles.kpiStatusBox}>
+                      <div className={`${styles.kpiStatusValue} ${styles[performanceData.risk_level.toLowerCase()]}`}>
+                        {performanceData.risk_level} Risk
+                      </div>
+                      <div className={styles.kpiStatusDesc}>
+                        Effort: <strong>{performanceData.effort_vs_output}</strong>
+                      </div>
+                      <div className={styles.kpiStatusLabel}>
+                        Consistency: <strong>{performanceData.consistency}</strong>
                       </div>
                     </div>
-                  ))}
+                  ) : null}
                 </div>
-              </CardBody>
-            </Card>
+              </div>
+
+              {/* Card 4: Personal Target Settings */}
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiTitle}>Set Target Attendance</span>
+                  <span className={styles.targetBadgeValue}>{targetPercent}%</span>
+                </div>
+                <div className={styles.kpiTargetBody}>
+                  <input 
+                    id="target-slider-overview"
+                    type="range" 
+                    min="50" max="100" 
+                    value={targetPercent}
+                    onChange={(e) => setTargetPercent(Number(e.target.value))}
+                    className={styles.targetSliderOverview}
+                  />
+                  <p className={styles.targetSliderDesc}>
+                    Your attendance is <strong>{data.overall_percentage.toFixed(1)}%</strong> which is{' '}
+                    <span className={data.overall_percentage >= targetPercent ? styles.successText : styles.dangerText}>
+                      {data.overall_percentage >= targetPercent ? 'above' : 'below'}
+                    </span>{' '}
+                    your target.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Full-width Subject breakdown section */}
+            <div className={styles.subjectPerformanceSection}>
+              <Card>
+                <CardHeader 
+                  title="Subject Performance & Attendance" 
+                  description="Correlated view of your attendance and academic scores in each subject" 
+                />
+                <CardBody>
+                  <div className={styles.subjectOverviewGrid}>
+                    {data.subjects.map((sub) => {
+                      const hasScore = performanceData && performanceData.subject_averages[sub.subject] !== undefined;
+                      const score = hasScore ? performanceData.subject_averages[sub.subject] : null;
+                      
+                      return (
+                        <div key={sub.subject_id} className={styles.subjectOverviewCard}>
+                          <div className={styles.subjectOverviewHeader}>
+                            <div>
+                              <h4 className={styles.subjectOverviewTitle}>{sub.subject}</h4>
+                              <span className={styles.subjectOverviewTeacher}>Instructor: {sub.teacher_name || 'N/A'}</span>
+                            </div>
+                            <div className={styles.subjectOverviewBadges}>
+                              <Badge variant={getBadgeVariant(sub.percentage)} style={{ marginRight: 4 }}>
+                                {sub.percentage.toFixed(1)}% Att.
+                              </Badge>
+                              {score !== null && (
+                                <Badge variant={score >= targetPercent ? 'success' : (score >= 60 ? 'warning' : 'danger')}>
+                                  {score.toFixed(1)}% Marks
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className={styles.subjectOverviewMetrics}>
+                            <div className={styles.metricRow}>
+                              <div className={styles.metricLabelRow}>
+                                <span>Attendance Rate</span>
+                                <span className={styles.metricVal}>{sub.percentage.toFixed(0)}%</span>
+                              </div>
+                              <ProgressBar value={sub.percentage} showValue={false} />
+                              <span className={styles.metricSubtext}>
+                                Attended {sub.attended} of {sub.total} classes ({sub.total - sub.attended} missed)
+                              </span>
+                            </div>
+
+                            <div className={styles.metricRow}>
+                              <div className={styles.metricLabelRow}>
+                                <span>Academic Average</span>
+                                <span className={styles.metricVal}>{score !== null ? `${score.toFixed(0)}%` : 'Pending'}</span>
+                              </div>
+                              {score !== null ? (
+                                <ProgressBar value={score} showValue={false} />
+                              ) : (
+                                <div className={styles.pendingBar}>
+                                  <div className={styles.pendingTrack} />
+                                </div>
+                              )}
+                              <span className={styles.metricSubtext}>
+                                {score !== null ? 'Weighted average across assessments' : 'Marks data not yet published'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
+
+            {/* Bottom Grid Layout: side-by-side Intelligence and Leaderboard */}
+            <div className={styles.overviewBottomGrid}>
+              <Card>
+                <CardHeader title="Intelligence & Actions" description="AI-driven recommendations based on your performance matrix" />
+                <CardBody>
+                  <div className={styles.insightsSectionList}>
+                    {/* Alert Message Banner based on Risk Level */}
+                    {performanceData && (
+                      <div className={`${styles.riskBanner} ${styles[performanceData.risk_level.toLowerCase()]}`}>
+                        <div className={styles.riskBannerIcon}>
+                          {performanceData.risk_level === 'High' ? '🚨' : performanceData.risk_level === 'Medium' ? '⚠️' : '✨'}
+                        </div>
+                        <div className={styles.riskBannerContent}>
+                          <h4>{performanceData.risk_level} Risk Category</h4>
+                          <p>
+                            {performanceData.risk_level === 'High' 
+                              ? 'Immediate academic support is advised. Your performance and/or attendance levels are critical.' 
+                              : performanceData.risk_level === 'Medium'
+                              ? 'Be cautious. Minor adjustments in attendance or study schedule can bring you back to low risk.'
+                              : 'Superb! You are maintaining an excellent academic standing. Keep it up!'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Dynamic Insights List */}
+                    <div className={styles.miniInsightsHeader}>Performance Insights</div>
+                    <div className={styles.miniInsightsList}>
+                      {insights.map((insight, idx) => (
+                        <div key={idx} className={`${styles.miniInsightItem} ${styles[insight.variant]}`}>
+                          <span className={styles.miniInsightIcon}>
+                            {insight.variant === 'success' && '🌟'}
+                            {insight.variant === 'warning' && '⚠️'}
+                            {insight.variant === 'danger' && '🚨'}
+                            {insight.variant === 'info' && '💡'}
+                          </span>
+                          <div className={styles.miniInsightText}>
+                            <h5>{insight.title}</h5>
+                            <p>{insight.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action Recommendations */}
+                    <div className={styles.miniInsightsHeader} style={{ marginTop: 20 }}>Recommended Actions</div>
+                    <div className={styles.recommendationList}>
+                      {performanceLoading ? (
+                        <div className={styles.loadingText}>Generating recommendations...</div>
+                      ) : performanceError ? (
+                        <div className={styles.recommendationItemNeutral}>
+                          <span>📋 Keep attending classes regularly and revise course topics to prepare for upcoming tests.</span>
+                        </div>
+                      ) : performanceData && performanceData.recommendations.length > 0 ? (
+                        performanceData.recommendations.map((rec, idx) => (
+                          <div key={idx} className={styles.recommendationItem}>
+                            <span className={styles.recDot} />
+                            <span className={styles.recText}>{rec}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className={styles.recommendationItemNeutral}>
+                          <span>✨ No critical recommendations. Maintain your current attendance and study habits!</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Section Leaderboard Card */}
+              <Card>
+                <CardHeader 
+                  title="Section Streak Leaderboard" 
+                  description="Top attendance streaks in your class section" 
+                />
+                <CardBody>
+                  {leaderboardLoading ? (
+                    <div className={styles.loadingText}>Loading leaderboard...</div>
+                  ) : leaderboard.length > 0 ? (
+                    <div className={styles.leaderboardList}>
+                      {leaderboard.map((item) => {
+                        const getRankIcon = (rank: number) => {
+                          if (rank === 1) return '🥇';
+                          if (rank === 2) return '🥈';
+                          if (rank === 3) return '🥉';
+                          return `${rank}.`;
+                        };
+
+                        return (
+                          <div 
+                            key={item.student_id} 
+                            className={`${styles.leaderboardRow} ${item.is_self ? styles.leaderboardSelf : ''}`}
+                          >
+                            <div className={styles.leaderboardLeft}>
+                              <span className={styles.rankIcon}>{getRankIcon(item.rank)}</span>
+                              <div className={styles.studentInfo}>
+                                <span className={styles.studentName}>
+                                  {item.name} {item.is_self && <span className={styles.youBadge}>(You)</span>}
+                                </span>
+                                <span className={styles.studentReg}>{item.register_number}</span>
+                              </div>
+                            </div>
+                            <div className={styles.leaderboardRight}>
+                              <Flame className={styles.leaderboardFlame} size={16} />
+                              <span className={styles.leaderboardStreak}>{item.current_streak} days</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className={styles.loadingText}>No active streaks found.</div>
+                  )}
+                </CardBody>
+              </Card>
+            </div>
           </>
         )}
 

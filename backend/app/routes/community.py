@@ -50,6 +50,13 @@ async def validate_post_scope(db: AsyncSession, user: dict, data: CommunityPostC
         
         # Verify student belongs to the class/section
         student = await db.get(Student, uid)
+        
+        # Auto-populate target IDs if omitted
+        if data.visibility_scope == VisibilityScope.class_scope and data.target_class_id is None:
+            data.target_class_id = student.class_id
+        if data.visibility_scope == VisibilityScope.section_scope and data.target_section_id is None:
+            data.target_section_id = student.section_id
+
         if data.visibility_scope == VisibilityScope.class_scope and data.target_class_id != student.class_id:
             raise HTTPException(status_code=403, detail="You can only post to your own class.")
         if data.visibility_scope == VisibilityScope.section_scope and data.target_section_id != student.section_id:
